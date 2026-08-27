@@ -84,234 +84,15 @@ const SEED_SKILLS = [
 
 // ---------- Seed Users ----------
 
-const SEED_USERS = [
-  {
-    id: "user-001",
-    name: "Kartik Saste",
-    email: "kartik@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Full-stack developer passionate about React, Node.js, and building products. Love teaching coding to peers.",
-    location: "Mumbai, India",
-    languages: ["English", "Hindi", "Marathi"],
-    interests: ["Open Source", "Hackathons", "Startups"],
-    createdAt: "2026-08-01",
-    skillCoins: 120,
-    xp: 340,
-    streak: 7,
-    sessionsCompleted: 14,
-    rating: 4.9,
-    reviewCount: 12,
-  },
-  {
-    id: "user-002",
-    name: "Karan Rathod",
-    email: "karan@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Electronics & IoT enthusiast with a knack for mobile app development. Eager to learn backend & system design.",
-    location: "Pune, India",
-    languages: ["English", "Hindi"],
-    interests: ["Embedded Systems", "Mobile Apps", "Robotics"],
-    createdAt: "2026-08-03",
-    skillCoins: 95,
-    xp: 280,
-    streak: 5,
-    sessionsCompleted: 10,
-    rating: 4.95,
-    reviewCount: 9,
-  },
-  {
-    id: "user-003",
-    name: "Sarah Chen",
-    email: "sarah@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Data scientist and ML researcher. Happy to break down neural networks in exchange for frontend guidance!",
-    location: "Bangalore, India",
-    languages: ["English", "Mandarin"],
-    interests: ["AI Research", "Kaggle", "Open Data"],
-    createdAt: "2026-07-20",
-    skillCoins: 150,
-    xp: 420,
-    streak: 12,
-    sessionsCompleted: 18,
-    rating: 4.92,
-    reviewCount: 16,
-  },
-  {
-    id: "user-004",
-    name: "Dev Patel",
-    email: "dev@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "CTF player and Linux nerd. Wanting to master full-stack Express APIs for personal web projects.",
-    location: "Delhi, India",
-    languages: ["English", "Hindi", "Gujarati"],
-    interests: ["Cybersecurity", "CTF", "Linux"],
-    createdAt: "2026-08-10",
-    skillCoins: 60,
-    xp: 180,
-    streak: 3,
-    sessionsCompleted: 6,
-    rating: 4.88,
-    reviewCount: 5,
-  },
-  {
-    id: "user-005",
-    name: "Maya Lin",
-    email: "maya@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Design lead for student projects. Let's make software look and feel world-class together!",
-    location: "Hyderabad, India",
-    languages: ["English", "Telugu"],
-    interests: ["Design Systems", "Typography", "Accessibility"],
-    createdAt: "2026-07-15",
-    skillCoins: 200,
-    xp: 510,
-    streak: 15,
-    sessionsCompleted: 22,
-    rating: 5.0,
-    reviewCount: 20,
-  },
-  {
-    id: "user-006",
-    name: "Arjun Mehta",
-    email: "arjun@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Music producer and guitarist who also codes Python scripts. Looking to learn video editing and marketing.",
-    location: "Chennai, India",
-    languages: ["English", "Tamil", "Hindi"],
-    interests: ["Music", "Podcasting", "Content Creation"],
-    createdAt: "2026-08-05",
-    skillCoins: 45,
-    xp: 130,
-    streak: 2,
-    sessionsCompleted: 4,
-    rating: 4.7,
-    reviewCount: 3,
-  },
-  {
-    id: "user-007",
-    name: "Priya Sharma",
-    email: "priya@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Business student passionate about marketing and entrepreneurship. Eager to learn basic programming.",
-    location: "Jaipur, India",
-    languages: ["English", "Hindi"],
-    interests: ["Startups", "Marketing", "Social Media"],
-    createdAt: "2026-08-12",
-    skillCoins: 30,
-    xp: 90,
-    streak: 1,
-    sessionsCompleted: 3,
-    rating: 4.6,
-    reviewCount: 2,
-  },
-  {
-    id: "user-008",
-    name: "Ravi Kumar",
-    email: "ravi@campus.edu",
-    password: "password123",
-    avatar: "",
-    bio: "Cloud engineering student experienced in Docker & AWS. Would love to learn UI/UX and guitar on the side.",
-    location: "Kolkata, India",
-    languages: ["English", "Bengali", "Hindi"],
-    interests: ["Cloud Native", "Kubernetes", "Music"],
-    createdAt: "2026-08-08",
-    skillCoins: 80,
-    xp: 240,
-    streak: 6,
-    sessionsCompleted: 8,
-    rating: 4.85,
-    reviewCount: 7,
-  },
-];
+const SEED_USERS = [];
 
 // ---------- Seed User Skills ----------
 
-const SEED_USER_SKILLS = [
-  // Kartik — teaches JS/React/Node, learns Python/ML/System Design
-  { userId: "user-001", skillId: "sk-001", type: "teach", proficiency: "advanced" },
-  { userId: "user-001", skillId: "sk-003", type: "teach", proficiency: "advanced" },
-  { userId: "user-001", skillId: "sk-004", type: "teach", proficiency: "advanced" },
-  { userId: "user-001", skillId: "sk-012", type: "teach", proficiency: "intermediate" },
-  { userId: "user-001", skillId: "sk-015", type: "teach", proficiency: "advanced" },
-  { userId: "user-001", skillId: "sk-002", type: "learn", proficiency: "beginner" },
-  { userId: "user-001", skillId: "sk-041", type: "learn", proficiency: "beginner" },
-  { userId: "user-001", skillId: "sk-016", type: "learn", proficiency: "beginner" },
-  // Karan — teaches Flutter/Figma, learns DSA/SQL
-  { userId: "user-002", skillId: "sk-013", type: "teach", proficiency: "advanced" },
-  { userId: "user-002", skillId: "sk-017", type: "teach", proficiency: "intermediate" },
-  { userId: "user-002", skillId: "sk-011", type: "teach", proficiency: "intermediate" },
-  { userId: "user-002", skillId: "sk-015", type: "learn", proficiency: "beginner" },
-  { userId: "user-002", skillId: "sk-010", type: "learn", proficiency: "beginner" },
-  { userId: "user-002", skillId: "sk-004", type: "learn", proficiency: "beginner" },
-  // Sarah — teaches ML/Python/PyTorch/Stats, learns React/Docker
-  { userId: "user-003", skillId: "sk-041", type: "teach", proficiency: "advanced" },
-  { userId: "user-003", skillId: "sk-002", type: "teach", proficiency: "advanced" },
-  { userId: "user-003", skillId: "sk-043", type: "teach", proficiency: "advanced" },
-  { userId: "user-003", skillId: "sk-049", type: "teach", proficiency: "advanced" },
-  { userId: "user-003", skillId: "sk-048", type: "teach", proficiency: "intermediate" },
-  { userId: "user-003", skillId: "sk-003", type: "learn", proficiency: "beginner" },
-  { userId: "user-003", skillId: "sk-044", type: "learn", proficiency: "beginner" },
-  // Dev — teaches Linux/Go, learns Node/React
-  { userId: "user-004", skillId: "sk-046", type: "teach", proficiency: "advanced" },
-  { userId: "user-004", skillId: "sk-008", type: "teach", proficiency: "intermediate" },
-  { userId: "user-004", skillId: "sk-004", type: "learn", proficiency: "beginner" },
-  { userId: "user-004", skillId: "sk-003", type: "learn", proficiency: "beginner" },
-  // Maya — teaches UI/UX/Figma/Graphic Design, learns React/CSS Animations
-  { userId: "user-005", skillId: "sk-016", type: "teach", proficiency: "advanced" },
-  { userId: "user-005", skillId: "sk-017", type: "teach", proficiency: "advanced" },
-  { userId: "user-005", skillId: "sk-018", type: "teach", proficiency: "advanced" },
-  { userId: "user-005", skillId: "sk-003", type: "learn", proficiency: "beginner" },
-  { userId: "user-005", skillId: "sk-011", type: "learn", proficiency: "intermediate" },
-  // Arjun — teaches Guitar/Music Production/Python, learns Video Editing/Marketing
-  { userId: "user-006", skillId: "sk-030", type: "teach", proficiency: "advanced" },
-  { userId: "user-006", skillId: "sk-032", type: "teach", proficiency: "intermediate" },
-  { userId: "user-006", skillId: "sk-002", type: "teach", proficiency: "intermediate" },
-  { userId: "user-006", skillId: "sk-036", type: "learn", proficiency: "beginner" },
-  { userId: "user-006", skillId: "sk-038", type: "learn", proficiency: "beginner" },
-  // Priya — teaches Marketing/Public Speaking, learns JavaScript/Python
-  { userId: "user-007", skillId: "sk-038", type: "teach", proficiency: "advanced" },
-  { userId: "user-007", skillId: "sk-023", type: "teach", proficiency: "advanced" },
-  { userId: "user-007", skillId: "sk-039", type: "teach", proficiency: "intermediate" },
-  { userId: "user-007", skillId: "sk-001", type: "learn", proficiency: "beginner" },
-  { userId: "user-007", skillId: "sk-002", type: "learn", proficiency: "beginner" },
-  // Ravi — teaches Docker/AWS/Linux, learns UI/UX/Guitar
-  { userId: "user-008", skillId: "sk-044", type: "teach", proficiency: "advanced" },
-  { userId: "user-008", skillId: "sk-045", type: "teach", proficiency: "advanced" },
-  { userId: "user-008", skillId: "sk-046", type: "teach", proficiency: "intermediate" },
-  { userId: "user-008", skillId: "sk-016", type: "learn", proficiency: "beginner" },
-  { userId: "user-008", skillId: "sk-030", type: "learn", proficiency: "beginner" },
-];
+const SEED_USER_SKILLS = [];
 
 // ---------- Seed Availability ----------
 
-const SEED_AVAILABILITY = [
-  { userId: "user-001", day: "Monday", startTime: "16:00", endTime: "18:00" },
-  { userId: "user-001", day: "Wednesday", startTime: "14:00", endTime: "17:00" },
-  { userId: "user-001", day: "Saturday", startTime: "10:00", endTime: "13:00" },
-  { userId: "user-002", day: "Tuesday", startTime: "15:00", endTime: "18:00" },
-  { userId: "user-002", day: "Thursday", startTime: "16:00", endTime: "19:00" },
-  { userId: "user-002", day: "Saturday", startTime: "11:00", endTime: "15:00" },
-  { userId: "user-003", day: "Monday", startTime: "16:00", endTime: "18:00" },
-  { userId: "user-003", day: "Wednesday", startTime: "15:00", endTime: "17:00" },
-  { userId: "user-003", day: "Friday", startTime: "14:00", endTime: "16:00" },
-  { userId: "user-004", day: "Wednesday", startTime: "14:00", endTime: "17:00" },
-  { userId: "user-004", day: "Saturday", startTime: "10:00", endTime: "13:00" },
-  { userId: "user-005", day: "Thursday", startTime: "13:00", endTime: "16:00" },
-  { userId: "user-005", day: "Saturday", startTime: "11:00", endTime: "14:00" },
-  { userId: "user-006", day: "Friday", startTime: "17:00", endTime: "20:00" },
-  { userId: "user-006", day: "Sunday", startTime: "10:00", endTime: "13:00" },
-  { userId: "user-007", day: "Tuesday", startTime: "10:00", endTime: "12:00" },
-  { userId: "user-007", day: "Thursday", startTime: "14:00", endTime: "16:00" },
-  { userId: "user-008", day: "Monday", startTime: "18:00", endTime: "20:00" },
-  { userId: "user-008", day: "Saturday", startTime: "09:00", endTime: "12:00" },
-];
+const SEED_AVAILABILITY = [];
 
 // ---------- Seed Badges ----------
 
@@ -328,76 +109,23 @@ const SEED_BADGES = [
 
 // ---------- Seed Sessions ----------
 
-const SEED_SESSIONS = [
-  {
-    id: "sess-001",
-    mentorId: "user-001",
-    learnerId: "user-002",
-    skillId: "sk-015",
-    topic: "Binary Trees & Graph Traversal",
-    date: "2026-08-25",
-    time: "16:00",
-    duration: 60,
-    status: "completed",
-    rating: 5,
-    feedback: "Kartik explained trees and graphs so clearly! Great session.",
-  },
-  {
-    id: "sess-002",
-    mentorId: "user-003",
-    learnerId: "user-001",
-    skillId: "sk-041",
-    topic: "Intro to Neural Networks with PyTorch",
-    date: "2026-08-26",
-    time: "16:00",
-    duration: 60,
-    status: "completed",
-    rating: 5,
-    feedback: "Sarah broke down backpropagation beautifully. Highly recommend!",
-  },
-  {
-    id: "sess-003",
-    mentorId: "user-005",
-    learnerId: "user-001",
-    skillId: "sk-016",
-    topic: "Design Systems & Component Libraries",
-    date: "2026-08-28",
-    time: "14:00",
-    duration: 60,
-    status: "upcoming",
-  },
-];
+const SEED_SESSIONS = [];
 
 // ---------- Seed Messages ----------
 
-const SEED_MESSAGES = [
-  { id: "msg-001", senderId: "user-003", receiverId: "user-001", content: "Hey Kartik! Excited for our PyTorch session. Have you installed the latest version?", timestamp: "2026-08-26T15:30:00", read: true },
-  { id: "msg-002", senderId: "user-001", receiverId: "user-003", content: "Hi Sarah! Yes, all set up. Looking forward to it!", timestamp: "2026-08-26T15:35:00", read: true },
-  { id: "msg-003", senderId: "user-005", receiverId: "user-001", content: "Hi! I'd love to learn React from you. Want to schedule a swap session?", timestamp: "2026-08-27T08:00:00", read: false },
-];
+const SEED_MESSAGES = [];
 
 // ---------- Seed Transactions ----------
 
-const SEED_TRANSACTIONS = [
-  { id: "tx-001", userId: "user-001", type: "earned", amount: 10, description: "Taught DSA to Karan Rathod", timestamp: "2026-08-25T17:00:00" },
-  { id: "tx-002", userId: "user-001", type: "spent", amount: -10, description: "Learned ML from Sarah Chen", timestamp: "2026-08-26T17:00:00" },
-  { id: "tx-003", userId: "user-001", type: "bonus", amount: 5, description: "Learning streak bonus (7 days)", timestamp: "2026-08-27T00:00:00" },
-];
+const SEED_TRANSACTIONS = [];
 
 // ---------- Seed Reviews ----------
 
-const SEED_REVIEWS = [
-  { id: "rev-001", sessionId: "sess-001", reviewerId: "user-002", revieweeId: "user-001", rating: 5, feedback: "Kartik explained trees and graphs so clearly! Great session.", timestamp: "2026-08-25T17:10:00" },
-  { id: "rev-002", sessionId: "sess-002", reviewerId: "user-001", revieweeId: "user-003", rating: 5, feedback: "Sarah broke down backpropagation beautifully. Highly recommend!", timestamp: "2026-08-26T17:10:00" },
-];
+const SEED_REVIEWS = [];
 
 // ---------- Seed Connections ----------
 
-const SEED_CONNECTIONS = [
-  { id: "conn-001", senderId: "user-001", receiverId: "user-003", status: "accepted", timestamp: "2026-08-20T10:00:00" },
-  { id: "conn-002", senderId: "user-002", receiverId: "user-001", status: "accepted", timestamp: "2026-08-22T14:00:00" },
-  { id: "conn-003", senderId: "user-005", receiverId: "user-001", status: "pending", timestamp: "2026-08-27T08:00:00" },
-];
+const SEED_CONNECTIONS = [];
 
 // ============================================================================
 // Database Class — wraps all tables with CRUD operations
@@ -406,6 +134,14 @@ const SEED_CONNECTIONS = [
 class MockDatabase {
   constructor() {
     this._loaded = false;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("skillswap_db");
+        if (saved && saved.includes("Kartik Saste")) {
+          localStorage.removeItem("skillswap_db");
+        }
+      } catch (e) {}
+    }
   }
 
   _loadFromStorage() {

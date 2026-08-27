@@ -1,26 +1,162 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-outfit: "Outfit", sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-brand: #FF3B30;
+  --color-brand-light: #FF6B5E;
+  --color-brand-dark: #CC2F26;
+  --color-surface: #09090D;
+  --color-surface-card: rgba(18, 18, 26, 0.75);
+  --color-surface-hover: rgba(30, 30, 42, 0.8);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 59, 48, 0.3);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ---------- Base ---------- */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #09090D;
+  color: #F1F5F9;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 { font-family: "Outfit", sans-serif; }
+
+::selection { background: #FF3B30; color: white; }
+
+/* ---------- Scrollbar ---------- */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #09090D; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,59,48,0.4); }
+
+/* ---------- Glass Utilities ---------- */
+
+.glass {
+  background: rgba(18, 18, 26, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+}
+
+.glass-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-hover:hover {
+  border-color: rgba(255,59,48,0.3);
+  box-shadow: 0 12px 40px -10px rgba(255,59,48,0.18);
+  transform: translateY(-2px);
+}
+
+.glass-red {
+  background: linear-gradient(135deg, rgba(255,59,48,0.12) 0%, rgba(20,20,27,0.8) 100%);
+  border: 1px solid rgba(255,59,48,0.3);
+}
+
+/* ---------- Background Patterns ---------- */
+
+.bg-dots {
+  background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bg-glow-red {
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,59,48,0.15) 0%, transparent 60%);
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
+.animate-slide-up { animation: slide-up 0.4s ease-out; }
+.animate-glow { animation: pulse-glow 3s infinite ease-in-out; }
+
+/* ---------- Form Inputs ---------- */
+
+.input-base {
+  width: 100%;
+  background: rgba(9, 9, 13, 0.9);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: #F1F5F9;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-base:focus {
+  border-color: #FF3B30;
+  box-shadow: 0 0 0 3px rgba(255,59,48,0.1);
+}
+.input-base::placeholder { color: #64748B; }
+
+/* ---------- Buttons ---------- */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #FF3B30, #E63E2F);
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(255,59,48,0.3);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #FF5247, #FF3B30);
+  box-shadow: 0 6px 20px rgba(255,59,48,0.4);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.06);
+  color: #CBD5E1;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  border-color: rgba(255,255,255,0.2);
 }
