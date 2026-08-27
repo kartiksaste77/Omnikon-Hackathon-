@@ -1,0 +1,140 @@
+// SkillSwap — Prisma Schema (SQLite)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+
+model User {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  password          String
+  bio               String   @default("")
+  avatar            String   @default("")
+  location          String   @default("")
+  skillCoins        Int      @default(10)
+  xp                Int      @default(0)
+  streak            Int      @default(0)
+  rating            Float    @default(0)
+  reviewCount       Int      @default(0)
+  sessionsCompleted Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userSkills       UserSkill[]
+  mentorSessions   Session[]      @relation("MentorSessions")
+  learnerSessions  Session[]      @relation("LearnerSessions")
+  sentConnections  Connection[]   @relation("SentConnections")
+  recvConnections  Connection[]   @relation("RecvConnections")
+  sentMessages     Message[]      @relation("SentMessages")
+  recvMessages     Message[]      @relation("RecvMessages")
+  givenReviews     Review[]       @relation("GivenReviews")
+  receivedReviews  Review[]       @relation("ReceivedReviews")
+  transactions     Transaction[]
+  notifications    Notification[]
+}
+
+model Skill {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  category    String
+  description String      @default("")
+  userSkills  UserSkill[]
+  sessions    Session[]
+}
+
+model UserSkill {
+  id          String @id @default(cuid())
+  userId      String
+  skillId     String
+  type        String // "teach" | "learn"
+  proficiency String @default("intermediate")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId, type])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  mentorId  String
+  learnerId String
+  skillId   String?
+  topic     String   @default("")
+  date      String
+  time      String   @default("16:00")
+  duration  Int      @default(60)
+  status    String   @default("upcoming")
+  createdAt DateTime @default(now())
+
+  mentor  User   @relation(fields: [mentorId], references: [id], name: "MentorSessions")
+  learner User   @relation(fields: [learnerId], references: [id], name: "LearnerSessions")
+  skill   Skill? @relation(fields: [skillId], references: [id])
+  reviews Review[]
+}
+
+model Connection {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+
+  sender   User @relation(fields: [senderId], references: [id], name: "SentConnections")
+  receiver User @relation(fields: [receiverId], references: [id], name: "RecvConnections")
+
+  @@unique([senderId, receiverId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation(fields: [senderId], references: [id], name: "SentMessages")
+  receiver User @relation(fields: [receiverId], references: [id], name: "RecvMessages")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  sessionId  String
+  reviewerId String
+  revieweeId String
+  rating     Int
+  feedback   String   @default("")
+  createdAt  DateTime @default(now())
+
+  session  Session @relation(fields: [sessionId], references: [id])
+  reviewer User    @relation(fields: [reviewerId], references: [id], name: "GivenReviews")
+  reviewee User    @relation(fields: [revieweeId], references: [id], name: "ReceivedReviews")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  amount      Int
+  description String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}

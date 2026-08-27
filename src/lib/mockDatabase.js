@@ -134,14 +134,6 @@ const SEED_CONNECTIONS = [];
 class MockDatabase {
   constructor() {
     this._loaded = false;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("skillswap_db");
-        if (saved && saved.includes("Kartik Saste")) {
-          localStorage.removeItem("skillswap_db");
-        }
-      } catch (e) {}
-    }
   }
 
   _loadFromStorage() {
@@ -378,6 +370,11 @@ class MockDatabase {
     this.sessions[idx].status = "completed";
     this._persist();
     return this.sessions[idx];
+  }
+
+  getSession(sessionId) {
+    this._loadFromStorage();
+    return this.sessions.find(s => s.id === sessionId) || null;
   }
 
   cancelSession(sessionId) {

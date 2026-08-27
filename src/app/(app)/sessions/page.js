@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import db from "@/lib/mockDatabase";
-import { Calendar, Plus, CheckCircle2, XCircle, Clock, BookOpen } from "lucide-react";
+import { Calendar, Plus, CheckCircle2, XCircle, Clock, Video } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export default function SessionsPage() {
   const { user, refreshUser } = useAuth();
+  const router = useRouter();
   const [showNewSession, setShowNewSession] = useState(false);
   const [, refresh] = useState(0);
 
@@ -139,6 +141,9 @@ export default function SessionsPage() {
                 <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${s.mentorId === user.id ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
                   {s.mentorId === user.id ? "Teaching" : "Learning"}
                 </span>
+                <button onClick={() => router.push(`/session/${s.id}`)} className="text-xs px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white transition-all">
+                  <Video className="h-3.5 w-3.5" /> Join Live
+                </button>
                 <button onClick={() => handleComplete(s.id)} className="btn-primary text-xs px-3 py-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Complete</button>
                 <button onClick={() => handleCancel(s.id)} className="btn-secondary text-xs px-3 py-1.5"><XCircle className="h-3.5 w-3.5" /> Cancel</button>
               </div>
