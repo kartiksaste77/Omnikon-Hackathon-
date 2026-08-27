@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SkillSwap — Peer Skill Exchange & Mentorship
 
-## Getting Started
+**SkillSwap** is a full-stack peer-to-peer student skill exchange application built for the **Omnikon National Hackathon 2026** (EdTech & Skill Development, Problem Statement `Omni_EdTech_10`).
 
-First, run the development server:
+The platform solves the campus skill silo problem by introducing a zero-cost time-bank economy powered by intelligent match scoring, structured learning path roadmaps, an AI assistant, and a dual-verification session check-in system.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🚀 Key Features
+
+*   **Zero-Cost Economy**: **$1\text{ Hour Taught} = 10\text{ SkillCoins} = 1\text{ Hour Learned}$**. Users earn coins by teaching and spend them to learn from others, with coins held in escrow during active bookings.
+*   **AI Match Engine**: Recommends matches with percentage compatibility scores based on teaching skills, learning goals, proficiency matching (beginner/intermediate/advanced), schedule overlap, languages, and interests.
+*   **AI Learning Roadmaps**: Generates custom week-by-week learning paths with specific tasks and curated resources based on the user's available weekly hours and goals.
+*   **AI Assistant Chat**: Provides educational guidance, structured steps, practice exercises, project ideas, and list of questions to ask mentors.
+*   **Dual Verification Session Management**: Virtual sessions run inside an interactive WebRTC simulator (with cameras, screenshare, a shared drawing whiteboard, and a JavaScript playground code runner). In-person sessions use an animated QR scanner and 4-digit OTP system to prevent no-shows.
+*   **Reputation Rating Reviews**: Users rate completed sessions out of 5 stars and submit feedback to automatically update public reliability scores and badges.
+*   **Gamification Systems**: Leaderboard rankings based on user XP, teaching stats, and streak multipliers. Custom unlockable achievement badges.
+
+---
+
+## 🛠️ Technology Stack
+
+*   **Frontend & Routing**: Next.js 14 (App Router)
+*   **Styling**: Tailwind CSS
+*   **Icons**: Lucide React
+*   **State & Session Management**: React Context, LocalStorage
+*   **AI Simulation Core**: Custom Natural Language & semantic mapping rules in client service layers
+*   **Animations**: canvas-confetti, Tailwind CSS keyframes
+
+---
+
+## 📐 Architecture & Closed-Loop System
+
+```
+┌───────────────┐     AI Match Score     ┌─────────────────┐
+│ User Profile  │───────────────────────▸│  AI Match Card  │
+└───────────────┘                        └─────────────────┘
+        │                                         │
+        │ Availability & Category                 │ Connect Request
+        ▼                                         ▼
+┌───────────────┐     Confirm & Book     ┌─────────────────┐
+│ Browse Skills │◄───────────────────────│  Chat & Connect │
+└───────────────┘                        └─────────────────┘
+                                                  │
+                                                  │ Schedule Session
+                                                  ▼
+┌───────────────┐     CONFIRM OTP/QR     ┌─────────────────┐
+│ Review System │◄───────────────────────│  Active Session │
+└───────────────┘   +10 Coins / +5 XP    └─────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## ⚙️ Local Development & Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
+*   Node.js 18+
+*   npm or yarn
 
-## Learn More
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/kartiksaste77/Omnikon-Hackathon-.git
+   cd Omnikon-Hackathon-
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📄 License & Security
+Refer to the following files for details:
+*   [LICENSE](LICENSE) — MIT License details.
+*   [SECURITY.md](SECURITY.md) — Security policy and vulnerability disclosure procedures.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 👥 Team: `kartiksaste11`
+*   **Kartik Saste**
+*   **Karan Rathod**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Omnikon National Hackathon 2026 — One mission. Build the impossible.*
