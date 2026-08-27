@@ -75,15 +75,30 @@ The platform solves the campus skill silo problem by introducing a zero-cost tim
 
 ---
 
-## 📄 License & Security
+## 📄 License, Security & Conduct
 Refer to the following files for details:
 *   [LICENSE](LICENSE) — MIT License details.
 *   [SECURITY.md](SECURITY.md) — Security policy and vulnerability disclosure procedures.
+*   [CONTRIBUTING.md](CONTRIBUTING.md) — Guidelines for contributing.
+*   [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Code of conduct guidelines.
 
 ---
 
 ## 👥 Team: `kartiksaste11`
 *   **Kartik Saste**
+    *   *Contributions*: Next.js framework scaffolding, App Router structure, AI roadmap generator, assistant chat components, matching engine scoring algorithm, and global styles layout.
 *   **Karan Rathod**
+    *   *Contributions*: Session management views, QR/OTP verification flows, mock relational transactional ledger service, gamification stats, and responsive desktop/mobile grid systems.
+
+---
+
+## 📚 Third-Party Attributions
+*   **Next.js** (Vercel) — React Framework for SSR and App routing.
+*   **Tailwind CSS** — Utility-first CSS styling and layout.
+*   **Lucide React** — Interface vector icons.
+*   **Canvas Confetti** — Gamification completion animations.
+*   **Outfit & Plus Jakarta Sans** (Google Fonts) — Visual branding typography.
+
+---
 
 *Omnikon National Hackathon 2026 — One mission. Build the impossible.*
