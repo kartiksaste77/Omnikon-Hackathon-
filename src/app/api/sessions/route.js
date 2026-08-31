@@ -36,11 +36,20 @@ export async function POST(req) {
     const mentorId = role === "teach" ? userId : peerId;
     const learnerId = role === "teach" ? peerId : userId;
 
+    // Ensure skillId is valid or null
+    let validSkillId = null;
+    if (skillId) {
+      try {
+        const s = await prisma.skill.findUnique({ where: { id: skillId } });
+        if (s) validSkillId = s.id;
+      } catch {}
+    }
+
     const session = await prisma.session.create({
       data: {
         mentorId,
         learnerId,
-        skillId: skillId || null,
+        skillId: validSkillId,
         topic: topic || "Skill Exchange Session",
         date,
         time,
@@ -54,23 +63,23 @@ export async function POST(req) {
       }
     });
 
-    // Notify both parties
-    const otherUserId = userId === mentorId ? learnerId : mentorId;
-    const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-    const notifContent = `📅 New session scheduled: "${session.topic}" on ${date} at ${time}`;
-    
-    const notif = await prisma.notification.create({
-      data: { userId: otherUserId, type: "session", content: notifContent, read: false }
-    });
+    // Safely attempt notification
     try {
+      const otherUserId = userId === mentorId ? learnerId : mentorId;
+      const notifContent = `📅 New session scheduled: "${session.topic}" on ${date} at ${time}`;
+      const notif = await prisma.notification.create({
+        data: { userId: otherUserId, type: "session", content: notifContent, read: false }
+      });
       if (global._io) {
         global._io.to(`user:${otherUserId}`).emit("notification:new", notif);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Session notification skipped:", e.message);
+    }
 
     return NextResponse.json(session, { status: 201 });
   } catch (err) {
     console.error("Create session error:", err);
-    return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create session: " + (err.message || "Server error") }, { status: 500 });
   }
 }
