@@ -23,7 +23,7 @@ export async function GET(req) {
   const convMap = new Map();
   for (const msg of messages) {
     const partner = msg.senderId === userId ? msg.receiver : msg.sender;
-    if (!convMap.has(partner.id)) {
+    if (partner && !convMap.has(partner.id)) {
       convMap.set(partner.id, {
         partnerId: partner.id,
         partnerName: partner.name,
@@ -34,14 +34,59 @@ export async function GET(req) {
       });
     }
     // Count unread (messages sent to me, not read)
-    if (msg.receiverId === userId && !msg.read) {
+    if (partner && msg.receiverId === userId && !msg.read) {
       const conv = convMap.get(partner.id);
-      conv.unreadCount = (conv.unreadCount || 0) + 1;
+      if (conv) conv.unreadCount = (conv.unreadCount || 0) + 1;
+    }
+  }
+
+  // Also fetch all accepted connections for this user so they appear in conversation sidebar
+  const connections = await prisma.connection.findMany({
+    where: {
+      OR: [{ senderId: userId }, { receiverId: userId }],
+      status: "accepted",
+    },
+    include: {
+      sender: { select: { id: true, name: true, location: true } },
+      receiver: { select: { id: true, name: true, location: true } },
+    },
+  });
+
+  for (const conn of connections) {
+    const partner = conn.senderId === userId ? conn.receiver : conn.sender;
+    if (partner && !convMap.has(partner.id)) {
+      convMap.set(partner.id, {
+        partnerId: partner.id,
+        partnerName: partner.name,
+        partnerLocation: partner.location || "",
+        lastMessage: "Start a conversation",
+        lastMessageAt: conn.updatedAt || new Date(0),
+        unreadCount: 0,
+      });
+    }
+  }
+
+  // Fallback: If no connections yet, load other platform users so chatting is always possible
+  if (convMap.size === 0) {
+    const otherUsers = await prisma.user.findMany({
+      where: { id: { not: userId } },
+      select: { id: true, name: true, location: true },
+      take: 10,
+    });
+    for (const u of otherUsers) {
+      convMap.set(u.id, {
+        partnerId: u.id,
+        partnerName: u.name,
+        partnerLocation: u.location || "",
+        lastMessage: "Start a conversation",
+        lastMessageAt: new Date(0),
+        unreadCount: 0,
+      });
     }
   }
 
   const conversations = Array.from(convMap.values()).sort(
-    (a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt)
+    (a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0)
   );
 
   return NextResponse.json(conversations);

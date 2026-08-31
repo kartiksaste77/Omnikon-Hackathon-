@@ -3,10 +3,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import apiClient from "@/lib/apiClient";
 import getSocket from "@/lib/socket";
+import { useSearchParams } from "next/navigation";
 import { MessageSquare, Send, User, Wifi, WifiOff, Circle } from "lucide-react";
 
 export default function ChatPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const targetUserId = searchParams?.get("userId");
+
   const [conversations, setConversations] = useState([]);
   const [activePartner, setActivePartner] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -24,11 +28,32 @@ export default function ChatPage() {
     if (!user) return;
     try {
       const data = await apiClient.get("/api/messages/conversations");
-      setConversations(data || []);
+      const convs = data || [];
+      setConversations(convs);
+
+      // Auto-select partner if none selected
+      if (!activePartner && convs.length > 0) {
+        if (targetUserId) {
+          const match = convs.find((c) => c.partnerId === targetUserId);
+          if (match) {
+            setActivePartner({ id: match.partnerId, name: match.partnerName, location: match.partnerLocation });
+          } else {
+            // Fetch target user profile
+            try {
+              const u = await apiClient.get(`/api/users/${targetUserId}`);
+              if (u) setActivePartner({ id: u.id, name: u.name, location: u.location });
+            } catch (e) {
+              setActivePartner({ id: convs[0].partnerId, name: convs[0].partnerName, location: convs[0].partnerLocation });
+            }
+          }
+        } else {
+          setActivePartner({ id: convs[0].partnerId, name: convs[0].partnerName, location: convs[0].partnerLocation });
+        }
+      }
     } catch (e) {
       console.warn("Conversations load failed:", e);
     }
-  }, [user]);
+  }, [user, activePartner, targetUserId]);
 
   // Fetch messages with active partner
   const loadMessages = useCallback(async (partnerId) => {
