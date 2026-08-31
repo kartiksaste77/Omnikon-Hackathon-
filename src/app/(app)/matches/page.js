@@ -13,18 +13,24 @@ const CATEGORIES = ["All", "Programming", "Design", "Business", "Languages", "Mu
 function MatchCard({ match, currentUserId, onConnect }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [localStatus, setLocalStatus] = useState(
-    match.isConnected ? "accepted" : match.isPending ? "pending" : null
+  const [status, setStatus] = useState(
+    match.connectionStatus || (match.isConnected ? "accepted" : match.isPending ? "pending_sent" : "none")
   );
+
+  useEffect(() => {
+    setStatus(
+      match.connectionStatus || (match.isConnected ? "accepted" : match.isPending ? "pending_sent" : "none")
+    );
+  }, [match.connectionStatus, match.isConnected, match.isPending]);
 
   const initials = match.name?.split(" ").map(n => n[0]).join("").toUpperCase() || "?";
 
   const handleConnect = async () => {
-    if (localStatus) return;
+    if (status !== "none") return;
     setConnecting(true);
     try {
       await apiClient.post("/api/connections", { receiverId: match.id });
-      setLocalStatus("pending");
+      setStatus("pending_sent");
       onConnect?.();
     } catch (e) {
       alert(e.message || "Failed to connect");
@@ -138,14 +144,23 @@ function MatchCard({ match, currentUserId, onConnect }) {
           <Link href={`/profile/${match.id}`} className="btn-secondary text-xs px-3 py-1.5">
             View Profile
           </Link>
-          {localStatus === "accepted" ? (
-            <span className="flex items-center gap-1 text-xs text-emerald-400 font-semibold px-3 py-1.5">
-              <UserCheck className="h-3.5 w-3.5" /> Connected
+          {status === "accepted" ? (
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 text-xs text-emerald-400 font-semibold px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                <UserCheck className="h-3.5 w-3.5" /> Connected
+              </span>
+              <Link href="/chat" className="btn-primary text-xs px-3 py-1.5">
+                Chat
+              </Link>
+            </div>
+          ) : status === "pending_sent" ? (
+            <span className="flex items-center gap-1 text-xs text-slate-400 font-semibold px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+              <Clock className="h-3.5 w-3.5 text-amber-400" /> Request Sent
             </span>
-          ) : localStatus === "pending" ? (
-            <span className="flex items-center gap-1 text-xs text-slate-400 font-semibold px-3 py-1.5">
-              <Clock className="h-3.5 w-3.5" /> Pending
-            </span>
+          ) : status === "pending_received" ? (
+            <Link href="/connections" className="btn-primary text-xs px-3 py-1.5 bg-gradient-to-r from-amber-600 to-red-600">
+              <UserPlus className="h-3.5 w-3.5" /> Respond
+            </Link>
           ) : (
             <button
               onClick={handleConnect}

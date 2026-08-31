@@ -83,9 +83,14 @@ export async function GET(req) {
     ...me.recvConnections.filter(c => c.status === "accepted").map(c => c.senderId),
   ]);
 
-  // Pending connection requests I've already sent
+  // Pending connection requests I've sent
   const pendingToIds = new Set(
     me.sentConnections.filter(c => c.status === "pending").map(c => c.receiverId)
+  );
+
+  // Pending connection requests sent to me
+  const pendingFromIds = new Set(
+    me.recvConnections.filter(c => c.status === "pending").map(c => c.senderId)
   );
 
   // Get all other users with their skills
@@ -143,6 +148,14 @@ export async function GET(req) {
       hasSkillMatch,
       isConnected: myConnectionIds.has(peer.id),
       isPending: pendingToIds.has(peer.id),
+      hasIncomingRequest: pendingFromIds.has(peer.id),
+      connectionStatus: myConnectionIds.has(peer.id)
+        ? "accepted"
+        : pendingToIds.has(peer.id)
+        ? "pending_sent"
+        : pendingFromIds.has(peer.id)
+        ? "pending_received"
+        : "none",
     };
   })
     .sort((a, b) => {

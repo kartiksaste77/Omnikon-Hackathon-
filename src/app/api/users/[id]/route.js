@@ -34,12 +34,18 @@ export async function GET(req, { params }) {
   }
 
   // Determine connection status between viewer and this user
-  let connectionStatus = null;
+  let connectionStatus = "none";
   if (viewerId && viewerId !== id) {
-    const sent = user.sentConnections?.[0];
-    const recv = user.recvConnections?.[0];
-    if (sent) connectionStatus = `sent:${sent.status}`;
-    else if (recv) connectionStatus = `received:${recv.status}`;
+    const peerSent = user.sentConnections?.[0]; // Peer sent to viewer
+    const viewerSent = user.recvConnections?.[0]; // Viewer sent to peer
+
+    if (peerSent?.status === "accepted" || viewerSent?.status === "accepted") {
+      connectionStatus = "accepted";
+    } else if (viewerSent?.status === "pending") {
+      connectionStatus = "pending_sent";
+    } else if (peerSent?.status === "pending") {
+      connectionStatus = "pending_received";
+    }
   }
 
   const { password, ...safe } = user;

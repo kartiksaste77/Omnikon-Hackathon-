@@ -103,8 +103,9 @@ export default function PublicProfilePage() {
 
   if (!profile) return null;
 
-  const isConnected = connectStatus?.includes("accepted");
-  const isPending = connectStatus?.includes("pending");
+  const isConnected = connectStatus === "accepted";
+  const isPendingSent = connectStatus === "pending_sent";
+  const isPendingRecv = connectStatus === "pending_received";
   const isOwnProfile = profile.isOwnProfile;
 
   const avgRating = profile.receivedReviews?.length > 0
@@ -142,15 +143,19 @@ export default function PublicProfilePage() {
             </div>
             {/* Action Buttons */}
             {!isOwnProfile && (
-              <div className="flex items-center gap-2 pb-1">
+              <div className="flex items-center gap-2 pb-1 flex-wrap">
                 {isConnected ? (
                   <button onClick={handleChat} className="btn-secondary text-sm">
                     <MessageSquare className="h-4 w-4" /> Message
                   </button>
-                ) : isPending ? (
+                ) : isPendingSent ? (
                   <button disabled className="btn-secondary text-sm opacity-60 cursor-not-allowed">
-                    <Clock className="h-4 w-4" /> Request Sent
+                    <Clock className="h-4 w-4 text-amber-400" /> Request Sent
                   </button>
+                ) : isPendingRecv ? (
+                  <Link href="/connections" className="btn-primary text-sm bg-gradient-to-r from-amber-600 to-red-600">
+                    <Users className="h-4 w-4" /> Respond to Request
+                  </Link>
                 ) : (
                   <button onClick={handleConnect} disabled={connecting} className="btn-primary text-sm">
                     <Users className="h-4 w-4" /> {connecting ? "Sending..." : "Connect"}
