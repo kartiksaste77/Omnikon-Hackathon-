@@ -226,7 +226,7 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -m-4 sm:-m-6 lg:-m-8 animate-fade-in">
+    <div className="flex h-[calc(100vh-140px)] lg:h-[calc(100vh-115px)] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-[#09090D] animate-fade-in">
       {/* Conversation List Sidebar */}
       <div className="w-72 lg:w-80 border-r border-white/10 bg-[#0A0A10] flex flex-col shrink-0">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
@@ -364,7 +364,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className="p-3 border-t border-white/10 bg-[#0A0A10] flex gap-2">
+            <form onSubmit={handleSend} className="p-3 border-t border-white/10 bg-[#0A0A10] flex gap-2 shrink-0 z-10">
               <input
                 value={msgInput}
                 onChange={handleInputChange}
