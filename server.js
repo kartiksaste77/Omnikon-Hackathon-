@@ -104,8 +104,95 @@ app.prepare().then(() => {
       }
     });
 
+    // ── Live Video Session & WebRTC Signaling ──
+    socket.on("session:join", ({ sessionId, userInfo }) => {
+      if (!sessionId) return;
+      const roomName = `session:${sessionId}`;
+      socket.join(roomName);
+      socket.sessionId = sessionId;
+      socket.userInfo = userInfo;
+
+      // Broadcast to existing participants that a new peer joined
+      socket.to(roomName).emit("session:peer-joined", {
+        socketId: socket.id,
+        userId: userId || socket.id,
+        userInfo: userInfo || { name: "Peer" },
+      });
+
+      console.log(`[Socket.io] Socket ${socket.id} joined ${roomName}`);
+    });
+
+    socket.on("signal:offer", ({ to, offer, sessionId }) => {
+      io.to(to).emit("signal:offer", {
+        from: socket.id,
+        offer,
+        sessionId,
+        userInfo: socket.userInfo,
+      });
+    });
+
+    socket.on("signal:answer", ({ to, answer, sessionId }) => {
+      io.to(to).emit("signal:answer", {
+        from: socket.id,
+        answer,
+        sessionId,
+      });
+    });
+
+    socket.on("signal:ice-candidate", ({ to, candidate, sessionId }) => {
+      io.to(to).emit("signal:ice-candidate", {
+        from: socket.id,
+        candidate,
+        sessionId,
+      });
+    });
+
+    socket.on("session:chat", ({ sessionId, message }) => {
+      if (!sessionId) return;
+      io.to(`session:${sessionId}`).emit("session:chat", {
+        ...message,
+        id: message.id || Date.now().toString(),
+        senderId: userId || socket.id,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    socket.on("session:hand-raise", ({ sessionId, raised }) => {
+      if (!sessionId) return;
+      socket.to(`session:${sessionId}`).emit("session:hand-raise", {
+        socketId: socket.id,
+        userId,
+        raised,
+      });
+    });
+
+    socket.on("session:screen-share", ({ sessionId, sharing }) => {
+      if (!sessionId) return;
+      socket.to(`session:${sessionId}`).emit("session:screen-share", {
+        socketId: socket.id,
+        userId,
+        sharing,
+      });
+    });
+
+    socket.on("session:leave", ({ sessionId }) => {
+      if (sessionId) {
+        socket.leave(`session:${sessionId}`);
+        socket.to(`session:${sessionId}`).emit("session:peer-left", {
+          socketId: socket.id,
+          userId,
+        });
+      }
+    });
+
     socket.on("disconnect", () => {
       console.log(`[Socket.io] Client disconnected: ${socket.id}`);
+      if (socket.sessionId) {
+        socket.to(`session:${socket.sessionId}`).emit("session:peer-left", {
+          socketId: socket.id,
+          userId: socket.userId,
+        });
+      }
     });
   });
 
