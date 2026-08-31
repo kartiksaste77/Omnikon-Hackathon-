@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, Bell, LogOut, Coins, Menu, X, Check, Sparkles } from "lucide-react";
+import { Zap, Bell, LogOut, Coins, Menu, X, Check, Sparkles, Video } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import apiClient from "@/lib/apiClient";
 import getSocket from "@/lib/socket";
@@ -93,6 +93,15 @@ export default function Navbar() {
 
         {/* Right section */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Instant Live Video Call Button */}
+          <Link
+            href="/session/instant-live-meeting"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-red-600 to-amber-500 hover:opacity-90 px-3 py-1.5 rounded-xl transition-all shadow-md shadow-red-600/20 text-white font-bold text-xs"
+          >
+            <Video className="h-4 w-4 animate-pulse" />
+            <span>Live Video Call</span>
+          </Link>
+
           {/* SkillCoins Balance */}
           <Link
             href="/wallet"

@@ -132,6 +132,12 @@ export default function SessionsPage() {
             Refresh
           </button>
           <button
+            onClick={() => router.push("/session/instant-live-meeting")}
+            className="text-xs px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 bg-gradient-to-r from-red-600 to-amber-500 hover:opacity-90 text-white transition-all shadow-md shadow-red-500/20"
+          >
+            <Video className="h-4 w-4" /> Instant Live Video Call
+          </button>
+          <button
             onClick={() => setShowNewSession(!showNewSession)}
             className="btn-primary text-sm"
           >

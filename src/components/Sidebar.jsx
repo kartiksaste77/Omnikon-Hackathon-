@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Search, Users, MessageSquare, Calendar, Star, User, Brain, Trophy, Map, Sparkles } from "lucide-react";
+import { LayoutDashboard, Search, Users, MessageSquare, Calendar, Star, User, Brain, Trophy, Map, Sparkles, Video } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/matches", label: "Find Matches", icon: Sparkles },
+  { href: "/session/instant-live-meeting", label: "Live Video Meeting", icon: Video },
   { href: "/connections", label: "Connections", icon: Users },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/sessions", label: "Sessions", icon: Calendar },
