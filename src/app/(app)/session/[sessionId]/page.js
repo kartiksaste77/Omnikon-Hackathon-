@@ -8,7 +8,7 @@ import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
   MessageSquare, Users, Hand, Settings, PhoneOff,
   Wifi, Send, Star, CheckCircle2, AlertCircle, Maximize2, Minimize2,
-  Sparkles, Award, Volume2, ShieldCheck, Play, ArrowLeft
+  Sparkles, Award, Volume2, ShieldCheck, Play, ArrowLeft, Clock, X
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
