@@ -16,21 +16,24 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     if (password !== confirmPw) { setError("Passwords do not match"); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
     setLoading(true);
-    setTimeout(() => {
-      const result = register(name, email, password);
+    try {
+      const result = await register(name, email, password);
       if (result.success) {
         router.push("/profile");
       } else {
-        setError(result.error);
+        setError(result.error || "Registration failed. Please try again.");
       }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (
