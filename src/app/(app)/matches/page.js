@@ -5,7 +5,7 @@ import apiClient from "@/lib/apiClient";
 import Link from "next/link";
 import {
   Sparkles, Search, Star, BookOpen, GraduationCap, Users, ArrowRight,
-  Brain, ChevronDown, ChevronUp, CheckCircle2, Clock, Zap, UserCheck, RefreshCw
+  Brain, ChevronDown, ChevronUp, CheckCircle2, Clock, Zap, UserCheck, UserPlus, RefreshCw
 } from "lucide-react";
 
 const CATEGORIES = ["All", "Programming", "Design", "Business", "Languages", "Music", "Data Science", "DevOps"];

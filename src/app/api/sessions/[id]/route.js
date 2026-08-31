@@ -7,14 +7,15 @@ export async function GET(req, { params }) {
   const userId = getUserFromRequest(req);
   if (!userId) return unauthorized();
 
+  const { id } = await params;
   const session = await prisma.session.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       mentor: { select: { id: true, name: true, avatar: true, rating: true } },
       learner: { select: { id: true, name: true, avatar: true, rating: true } },
       skill: true,
-      reviews: true
-    }
+      reviews: true,
+    },
   });
 
   if (!session) {
@@ -29,14 +30,15 @@ export async function PATCH(req, { params }) {
   if (!userId) return unauthorized();
 
   try {
+    const { id } = await params;
     const { status } = await req.json(); // "completed" | "cancelled"
     if (!["completed", "cancelled"].includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
     const session = await prisma.session.findUnique({
-      where: { id: params.id },
-      include: { mentor: true, learner: true }
+      where: { id },
+      include: { mentor: true, learner: true },
     });
 
     if (!session || (session.mentorId !== userId && session.learnerId !== userId)) {
@@ -44,8 +46,8 @@ export async function PATCH(req, { params }) {
     }
 
     const updated = await prisma.session.update({
-      where: { id: params.id },
-      data: { status }
+      where: { id },
+      data: { status },
     });
 
     // If completed, award SkillCoins & XP
@@ -56,16 +58,16 @@ export async function PATCH(req, { params }) {
         data: {
           skillCoins: { increment: 10 },
           xp: { increment: 10 },
-          sessionsCompleted: { increment: 1 }
-        }
+          sessionsCompleted: { increment: 1 },
+        },
       });
       await prisma.transaction.create({
         data: {
           userId: session.mentorId,
           type: "earned",
           amount: 10,
-          description: `Taught session: ${session.topic}`
-        }
+          description: `Taught session: ${session.topic}`,
+        },
       });
 
       // Learner gets 5 coins + 5 XP
@@ -74,16 +76,16 @@ export async function PATCH(req, { params }) {
         data: {
           skillCoins: { increment: 5 },
           xp: { increment: 5 },
-          sessionsCompleted: { increment: 1 }
-        }
+          sessionsCompleted: { increment: 1 },
+        },
       });
       await prisma.transaction.create({
         data: {
           userId: session.learnerId,
           type: "earned",
           amount: 5,
-          description: `Completed learning: ${session.topic}`
-        }
+          description: `Completed learning: ${session.topic}`,
+        },
       });
     }
 

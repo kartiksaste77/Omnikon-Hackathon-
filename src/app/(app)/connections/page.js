@@ -31,10 +31,15 @@ export default function ConnectionsPage() {
   const handleUpdateStatus = async (connId, status) => {
     setActionLoading((prev) => ({ ...prev, [connId]: true }));
     try {
+      // Optimistically update UI
+      setConnections((prev) =>
+        prev.map((c) => (c.id === connId ? { ...c, status } : c))
+      );
       await apiClient.patch(`/api/connections/${connId}`, { status });
       await loadConnections();
     } catch (e) {
       alert(e.message || `Failed to ${status} connection`);
+      await loadConnections();
     } finally {
       setActionLoading((prev) => ({ ...prev, [connId]: false }));
     }
