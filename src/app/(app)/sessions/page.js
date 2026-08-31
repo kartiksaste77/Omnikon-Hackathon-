@@ -59,7 +59,7 @@ export default function SessionsPage() {
     setCreating(true);
     try {
       const selectedSkill = allSkills.find((s) => s.id === skillId);
-      await apiClient.post("/api/sessions", {
+      const created = await apiClient.post("/api/sessions", {
         peerId,
         skillId: skillId || null,
         topic: topic || selectedSkill?.name || "Skill Exchange Session",
@@ -68,13 +68,16 @@ export default function SessionsPage() {
         duration: parseInt(duration, 10) || 60,
         role,
       });
+      if (created) {
+        setSessions((prev) => [created, ...prev.filter((s) => s.id !== created.id)]);
+        try { confetti({ particleCount: 60, spread: 50 }); } catch {}
+      }
       setShowNewSession(false);
       setPeerId("");
       setSkillId("");
       setTopic("");
       setDate("");
       setTime("16:00");
-      await loadData();
     } catch (err) {
       alert(err.message || "Failed to create session");
     } finally {
