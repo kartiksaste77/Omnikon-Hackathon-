@@ -72,7 +72,8 @@ export const authService = {
       if (!localUser) {
         localUser = db.createUser({ id: data.user.id, name: data.user.name, email, password });
       }
-      this._setSession(localUser);
+      localUser.id = data.user.id;
+      this._setSession(data.user || localUser);
 
       return { success: true, user: data.user };
     } catch (err) {
@@ -100,8 +101,8 @@ export const authService = {
     try {
       const session = localStorage.getItem(SESSION_KEY);
       if (!session) return null;
-      const { userId } = JSON.parse(session);
-      const user = db.getUser(userId);
+      const parsed = JSON.parse(session);
+      const user = db.getUser(parsed.userId) || parsed.user;
       return user ? this._sanitize(user) : null;
     } catch {
       return null;
@@ -134,6 +135,8 @@ export const authService = {
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         userId: user.id,
         email: user.email,
+        name: user.name,
+        user: this._sanitize(user),
         loginAt: new Date().toISOString(),
       }));
     }
