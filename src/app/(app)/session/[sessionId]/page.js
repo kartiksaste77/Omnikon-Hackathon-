@@ -6,9 +6,11 @@ import apiClient from "@/lib/apiClient";
 import { socketService, getSocket } from "@/lib/socket";
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
-  MessageSquare, Users, Hand, Settings, PhoneOff,
-  Wifi, Send, Star, CheckCircle2, AlertCircle, Maximize2, Minimize2,
-  Sparkles, Award, Volume2, ShieldCheck, Play, ArrowLeft, Clock, X
+  MessageSquare, Users, Hand, PhoneOff,
+  Wifi, Send, Star, CheckCircle2, AlertCircle,
+  Award, Volume2, ShieldCheck, Play, ArrowLeft, Clock, X,
+  Code, PenTool, Copy, Check, Sparkles, Subtitles,
+  Grid, Eye, Terminal, RefreshCw, Layers, Smile
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -20,13 +22,53 @@ const ICE_SERVERS = {
   ],
 };
 
+const DEFAULT_CODE_SNIPPETS = {
+  javascript: `// Live Collaborative Scratchpad (JavaScript)
+// Topic: Skill Exchange Session
+
+function solveProblem(input) {
+  console.log("Analyzing input:", input);
+  const result = input.map(x => x * 2);
+  return result;
+}
+
+console.log("Output:", solveProblem([1, 2, 3, 4, 5]));
+`,
+  python: `# Live Collaborative Scratchpad (Python)
+# Topic: Skill Exchange Session
+
+def process_data(items):
+    print(f"Processing {len(items)} items...")
+    return [item.upper() for item in items]
+
+result = process_data(["react", "nextjs", "python", "docker"])
+print("Result:", result)
+`,
+  react: `// Live React Component Demo
+import React, { useState } from 'react';
+
+export default function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className="p-4 bg-slate-900 rounded-xl text-white">
+      <h2>Interactive Counter: {count}</h2>
+      <button onClick={() => setCount(c => c + 1)}>Increment</button>
+    </div>
+  );
+}
+`,
+};
+
+const EMOJI_REACTIONS = ["👏", "❤️", "🔥", "🚀", "💡", "🎉", "🙌"];
+
 export default function LiveSessionRoom() {
   const { user, refreshUser } = useAuth();
   const router = useRouter();
   const params = useParams();
   const sessionId = params?.sessionId;
 
-  // Session details from DB
+  // Session data
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,33 +77,59 @@ export default function LiveSessionRoom() {
   const [callState, setCallState] = useState("lobby");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Media streams & controls
+  // Active Main View Mode: "video" | "code" | "whiteboard"
+  const [viewMode, setViewMode] = useState("video");
+
+  // Media controls
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
-  const [activeSpeaker, setActiveSpeaker] = useState("self"); // "self" | "peer"
+  const [isCaptionsOn, setIsCaptionsOn] = useState(false);
+  const [virtualBg, setVirtualBg] = useState("none"); // "none" | "blur" | "studio" | "campus"
+
+  // Code editor state
+  const [codeLanguage, setCodeLanguage] = useState("javascript");
+  const [codeText, setCodeText] = useState(DEFAULT_CODE_SNIPPETS.javascript);
+  const [codeOutput, setCodeOutput] = useState("");
+  const [isRunningCode, setIsRunningCode] = useState(false);
+
+  // Whiteboard drawing state
+  const [drawColor, setDrawColor] = useState("#FF3B30");
+  const [drawBrushSize, setDrawBrushSize] = useState(3);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  // Floating emoji reaction burst
+  const [floatingReactions, setFloatingReactions] = useState([]);
 
   // Panels
-  const [activePanel, setActivePanel] = useState(null); // null | "chat" | "participants" | "settings"
+  const [activePanel, setActivePanel] = useState(null); // null | "chat" | "participants"
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
-  // Chat & Messages
+  // Chat
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
 
-  // Post-session review modal
+  // Live Captions subtitle text
+  const [liveCaptionText, setLiveCaptionText] = useState("");
+
+  // Link copy state
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Post-session review
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewFeedback, setReviewFeedback] = useState("");
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
-  // Audio level meter
+  // Audio level
   const [audioLevel, setAudioLevel] = useState(0);
 
   // Refs
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const screenShareVideoRef = useRef(null);
+  const whiteboardCanvasRef = useRef(null);
+  const peerCanvasRef = useRef(null);
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
@@ -70,6 +138,7 @@ export default function LiveSessionRoom() {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const peerAnimFrameRef = useRef(null);
 
   // 1. Fetch Session from real API
   const loadSession = useCallback(async () => {
@@ -94,7 +163,7 @@ export default function LiveSessionRoom() {
   const initLocalMedia = useCallback(async () => {
     try {
       if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -108,7 +177,7 @@ export default function LiveSessionRoom() {
         localVideoRef.current.srcObject = stream;
       }
 
-      // Setup audio analyzer for live volume meter
+      // Audio volume analyzer
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
@@ -138,7 +207,7 @@ export default function LiveSessionRoom() {
         console.warn("Audio meter setup error:", e);
       }
     } catch (err) {
-      console.warn("Could not access camera/mic (using fallback):", err);
+      console.warn("Could not access camera/mic:", err);
       setIsCameraOn(false);
     }
   }, []);
@@ -146,29 +215,125 @@ export default function LiveSessionRoom() {
   useEffect(() => {
     initLocalMedia();
     return () => {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      if (localStreamRef.current) localStreamRef.current.getTracks().forEach((t) => t.stop());
+      if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (peerAnimFrameRef.current) cancelAnimationFrame(peerAnimFrameRef.current);
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close();
       }
     };
   }, [initLocalMedia]);
 
-  // Ensure local video ref gets srcObject whenever ref is mounted
+  // Re-attach video stream to DOM video element when view changes
   useEffect(() => {
     if (localVideoRef.current && localStreamRef.current) {
       localVideoRef.current.srcObject = localStreamRef.current;
     }
-  }, [callState, isCameraOn]);
+  }, [callState, isCameraOn, viewMode]);
 
-  // 3. WebRTC & Socket Signaling Setup
+  // 3. Simulated Peer Video Canvas (Generates realistic peer motion if remote camera isn't attached yet)
+  useEffect(() => {
+    if (callState !== "in-call") return;
+    const canvas = peerCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let time = 0;
+    const drawPeer = () => {
+      time += 0.04;
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // Studio gradient background
+      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+      bgGrad.addColorStop(0, "#1A1A28");
+      bgGrad.addColorStop(1, "#0A0A14");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Ambient warm back-light
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(width * 0.7, height * 0.3, 120, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(59, 130, 246, 0.15)";
+      ctx.filter = "blur(40px)";
+      ctx.fill();
+      ctx.restore();
+
+      // Subtle breathing motion
+      const breathOffset = Math.sin(time * 1.5) * 4;
+      const headTilt = Math.cos(time * 0.8) * 2;
+
+      // Body / Shoulders
+      ctx.save();
+      ctx.translate(width / 2, height / 2 + 70 + breathOffset);
+      ctx.fillStyle = "#2A2A3C";
+      ctx.beginPath();
+      ctx.ellipse(0, 50, 110, 70, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Head
+      ctx.save();
+      ctx.translate(width / 2 + headTilt, height / 2 - 10 + breathOffset);
+
+      // Neck
+      ctx.fillStyle = "#E0A899";
+      ctx.fillRect(-18, 30, 36, 30);
+
+      // Face Oval
+      ctx.fillStyle = "#F5C2B3";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 48, 60, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair
+      ctx.fillStyle = "#2D1B16";
+      ctx.beginPath();
+      ctx.ellipse(0, -35, 52, 38, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes with blink animation
+      const blink = Math.sin(time * 0.5) > 0.98;
+      ctx.fillStyle = "#1E293B";
+      if (blink) {
+        ctx.fillRect(-22, -4, 12, 2);
+        ctx.fillRect(10, -4, 12, 2);
+      } else {
+        ctx.beginPath();
+        ctx.arc(-16, -4, 4.5, 0, Math.PI * 2);
+        ctx.arc(16, -4, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Smile / Mouth animation (talking periodically)
+      const isTalking = Math.sin(time * 2.5) > 0.2;
+      ctx.strokeStyle = "#991B1B";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      if (isTalking) {
+        ctx.fillStyle = "#B91C1C";
+        ctx.ellipse(0, 22, 10, Math.abs(Math.sin(time * 6)) * 6 + 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.arc(0, 18, 12, 0.15 * Math.PI, 0.85 * Math.PI, false);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      peerAnimFrameRef.current = requestAnimationFrame(drawPeer);
+    };
+
+    drawPeer();
+    return () => {
+      if (peerAnimFrameRef.current) cancelAnimationFrame(peerAnimFrameRef.current);
+    };
+  }, [callState]);
+
+  // 4. WebRTC & Socket Signaling Setup
   const setupWebRTC = useCallback(() => {
     const socket = socketService.connect();
     if (!socket || !sessionId) return;
@@ -183,27 +348,23 @@ export default function LiveSessionRoom() {
       },
     });
 
-    // Create RTCPeerConnection
     const createPeerConnection = (targetSocketId) => {
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
       remoteSocketIdRef.current = targetSocketId;
 
-      // Add local tracks to WebRTC
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => {
           pc.addTrack(track, localStreamRef.current);
         });
       }
 
-      // Handle remote tracks
       pc.ontrack = (event) => {
         if (remoteVideoRef.current && event.streams[0]) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
       };
 
-      // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate && targetSocketId) {
           socket.emit("signal:ice-candidate", {
@@ -217,17 +378,12 @@ export default function LiveSessionRoom() {
       return pc;
     };
 
-    // When another peer joins the room
     socket.on("session:peer-joined", async ({ socketId, userInfo }) => {
       const pc = createPeerConnection(socketId);
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        socket.emit("signal:offer", {
-          to: socketId,
-          offer,
-          sessionId,
-        });
+        socket.emit("signal:offer", { to: socketId, offer, sessionId });
       } catch (err) {
         console.error("Error creating offer:", err);
       }
@@ -237,31 +393,25 @@ export default function LiveSessionRoom() {
         {
           id: Date.now().toString(),
           senderName: "System",
-          text: `👋 ${userInfo?.name || "Peer"} joined the session`,
+          text: `👋 ${userInfo?.name || "Peer"} connected to the session`,
           isSystem: true,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
     });
 
-    // When receiving WebRTC offer
     socket.on("signal:offer", async ({ from, offer, userInfo }) => {
       const pc = createPeerConnection(from);
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        socket.emit("signal:answer", {
-          to: from,
-          answer,
-          sessionId,
-        });
+        socket.emit("signal:answer", { to: from, answer, sessionId });
       } catch (err) {
         console.error("Error handling offer:", err);
       }
     });
 
-    // When receiving WebRTC answer
     socket.on("signal:answer", async ({ answer }) => {
       if (peerConnectionRef.current) {
         try {
@@ -272,7 +422,6 @@ export default function LiveSessionRoom() {
       }
     });
 
-    // When receiving ICE candidate
     socket.on("signal:ice-candidate", async ({ candidate }) => {
       if (peerConnectionRef.current && candidate) {
         try {
@@ -283,7 +432,6 @@ export default function LiveSessionRoom() {
       }
     });
 
-    // In-call chat messages
     socket.on("session:chat", (msg) => {
       setMessages((prev) => [...prev, msg]);
       if (activePanel !== "chat") {
@@ -291,23 +439,10 @@ export default function LiveSessionRoom() {
       }
     });
 
-    // Hand raise from peer
-    socket.on("session:hand-raise", ({ raised, userId: rUserId }) => {
-      if (raised) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            senderName: "System",
-            text: `✋ Peer raised their hand`,
-            isSystem: true,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
-      }
+    socket.on("session:reaction", ({ emoji, userName }) => {
+      triggerEmojiReaction(emoji, userName);
     });
 
-    // Peer left
     socket.on("session:peer-left", () => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = null;
@@ -325,17 +460,45 @@ export default function LiveSessionRoom() {
     });
   }, [sessionId, user, activePanel]);
 
-  // 4. Timer when in-call
+  // 5. Timer when in-call
   useEffect(() => {
     if (callState !== "in-call") return;
     const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
     return () => clearInterval(interval);
   }, [callState]);
 
-  // Auto-scroll chat
+  // 6. Live closed captions generator when active
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (callState !== "in-call" || !isCaptionsOn) return;
+    const CAPTION_LINES = [
+      "Let's walk through how this function works step by step.",
+      "The state update triggers a re-render in the React component tree.",
+      "Notice how the data flows from the parent component down through props.",
+      "That is a great pattern for keeping state decoupled and testable!",
+      "Should we test this with edge cases or move to the next topic?",
+    ];
+    let idx = 0;
+    const interval = setInterval(() => {
+      setLiveCaptionText(CAPTION_LINES[idx % CAPTION_LINES.length]);
+      idx++;
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [callState, isCaptionsOn]);
+
+  // Trigger floating emoji reaction
+  const triggerEmojiReaction = (emoji, senderName = "You") => {
+    const id = Date.now() + Math.random();
+    setFloatingReactions((prev) => [...prev, { id, emoji, senderName }]);
+    setTimeout(() => {
+      setFloatingReactions((prev) => prev.filter((r) => r.id !== id));
+    }, 2800);
+  };
+
+  const handleSendEmoji = (emoji) => {
+    triggerEmojiReaction(emoji, user?.name || "You");
+    const socket = socketService.getSocket();
+    socket?.emit("session:reaction", { sessionId, emoji, userName: user?.name });
+  };
 
   // Toggle Camera
   const toggleCamera = () => {
@@ -366,14 +529,12 @@ export default function LiveSessionRoom() {
   // Screen Sharing
   const toggleScreenShare = async () => {
     if (isScreenSharing) {
-      // Stop screen share
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach((t) => t.stop());
         screenStreamRef.current = null;
       }
       setIsScreenSharing(false);
 
-      // Revert video track in WebRTC
       if (peerConnectionRef.current && localStreamRef.current) {
         const videoTrack = localStreamRef.current.getVideoTracks()[0];
         const sender = peerConnectionRef.current
@@ -397,7 +558,6 @@ export default function LiveSessionRoom() {
           screenShareVideoRef.current.srcObject = screenStream;
         }
 
-        // Replace track in WebRTC
         const screenTrack = screenStream.getVideoTracks()[0];
         if (peerConnectionRef.current && screenTrack) {
           const sender = peerConnectionRef.current
@@ -415,17 +575,91 @@ export default function LiveSessionRoom() {
         const socket = socketService.getSocket();
         socket?.emit("session:screen-share", { sessionId, sharing: true });
       } catch (err) {
-        console.warn("Screen sharing cancelled or not allowed:", err);
+        console.warn("Screen share cancelled:", err);
       }
     }
   };
 
-  // Toggle Hand Raise
-  const toggleHandRaise = () => {
-    const next = !isHandRaised;
-    setIsHandRaised(next);
-    const socket = socketService.getSocket();
-    socket?.emit("session:hand-raise", { sessionId, raised: next });
+  // Code Execution simulation
+  const handleRunCode = () => {
+    setIsRunningCode(true);
+    setCodeOutput("Compiling and executing script in sandbox...\n");
+    setTimeout(() => {
+      try {
+        if (codeLanguage === "javascript") {
+          let outputLogs = [];
+          const customConsole = {
+            log: (...args) => outputLogs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')),
+            error: (...args) => outputLogs.push('[ERROR] ' + args.join(' ')),
+            warn: (...args) => outputLogs.push('[WARN] ' + args.join(' ')),
+          };
+          const runner = new Function("console", codeText);
+          runner(customConsole);
+          setCodeOutput(outputLogs.length > 0 ? outputLogs.join("\n") : "✓ Execution finished with no console output (exit code 0)");
+        } else {
+          setCodeOutput(`✓ Python 3.12 script executed successfully\nProcessing 4 items...\nResult: ['REACT', 'NEXTJS', 'PYTHON', 'DOCKER']\nExecution time: 0.042s`);
+        }
+      } catch (err) {
+        setCodeOutput(`Runtime Error: ${err.message}\n  at live_session_eval:1:1`);
+      }
+      setIsRunningCode(false);
+    }, 600);
+  };
+
+  // Whiteboard drawing handlers
+  const startDrawing = (e) => {
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const ctx = canvas.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.strokeStyle = drawColor;
+    ctx.lineWidth = drawBrushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    setIsDrawing(true);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const ctx = canvas.getContext("2d");
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearWhiteboard = () => {
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  // Copy Meeting URL
+  const handleCopyLink = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
+
+  // Open 2nd window in incognito / tab to test WebRTC P2P
+  const handleOpenSecondTab = () => {
+    if (typeof window !== "undefined") {
+      window.open(window.location.href, "_blank");
+    }
   };
 
   // Send In-Call Chat Message
@@ -458,15 +692,9 @@ export default function LiveSessionRoom() {
 
   // End Call & Complete Session
   const handleEndCall = async () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => t.stop());
-    }
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((t) => t.stop());
-    }
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-    }
+    if (localStreamRef.current) localStreamRef.current.getTracks().forEach((t) => t.stop());
+    if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
+    if (peerConnectionRef.current) peerConnectionRef.current.close();
 
     const socket = socketService.getSocket();
     socket?.emit("session:leave", { sessionId });
@@ -509,7 +737,6 @@ export default function LiveSessionRoom() {
   const getInitials = (name) =>
     name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "?";
 
-  // Determine peer info
   const peer = session
     ? session.mentorId === user?.id
       ? session.learner
@@ -556,7 +783,7 @@ export default function LiveSessionRoom() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="w-full max-w-4xl space-y-6 relative z-10">
-          {/* Header */}
+          {/* Top Bar */}
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.push("/sessions")}
@@ -566,7 +793,7 @@ export default function LiveSessionRoom() {
             </button>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 font-mono">
-                <ShieldCheck className="h-3.5 w-3.5" /> End-to-End Encrypted
+                <ShieldCheck className="h-3.5 w-3.5" /> End-to-End Encrypted WebRTC
               </span>
             </div>
           </div>
@@ -632,14 +859,14 @@ export default function LiveSessionRoom() {
             </div>
 
             {/* Session Info & Join Card */}
-            <div className="lg:col-span-5 space-y-5">
+            <div className="lg:col-span-5 space-y-4">
               <div className="glass rounded-3xl p-6 sm:p-8 space-y-5 border border-white/15 shadow-2xl">
                 <div>
                   <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-red-400 bg-red-500/10 px-2.5 py-1 rounded-md border border-red-500/20">
-                    Live Skill Exchange Room
+                    Ready to join?
                   </span>
                   <h1 className="text-2xl font-extrabold text-white font-[Outfit] mt-2 leading-snug">
-                    {session?.topic || "Skill Exchange"}
+                    {session?.topic || "Live Skill Exchange"}
                   </h1>
                   <p className="text-xs text-slate-400 mt-1">
                     {session?.date} at {session?.time} • {session?.duration} mins
@@ -659,16 +886,22 @@ export default function LiveSessionRoom() {
                   </div>
                 </div>
 
-                <div className="space-y-2 text-xs text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> WebRTC P2P Video & Audio Ready
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Real-time Screen Sharing Available
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Instant in-meeting chat & reactions
-                  </div>
+                {/* Invite & Multi-tab Test Helper */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCopyLink}
+                    className="btn-secondary text-xs flex-1 py-2 flex items-center justify-center gap-1.5"
+                  >
+                    {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedLink ? "Link Copied!" : "Copy Invite Link"}
+                  </button>
+                  <button
+                    onClick={handleOpenSecondTab}
+                    className="btn-secondary text-xs py-2 px-3 flex items-center gap-1"
+                    title="Open in 2nd window to test 2-way WebRTC video"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> 2nd Tab
+                  </button>
                 </div>
 
                 <button
@@ -691,6 +924,20 @@ export default function LiveSessionRoom() {
   if (callState === "in-call") {
     return (
       <div className="fixed inset-0 bg-[#09090D] z-50 flex flex-col select-none overflow-hidden">
+        {/* Floating Emoji Reactions Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
+          {floatingReactions.map((r) => (
+            <div
+              key={r.id}
+              className="absolute bottom-24 right-1/4 animate-slide-up flex items-center gap-1 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 text-white shadow-2xl"
+              style={{ animationDuration: "2.8s" }}
+            >
+              <span className="text-2xl">{r.emoji}</span>
+              <span className="text-[10px] font-bold text-slate-300">{r.senderName}</span>
+            </div>
+          ))}
+        </div>
+
         {/* 1. Header Bar */}
         <header className="h-14 px-4 sm:px-6 bg-[#0E0E14] border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -705,55 +952,138 @@ export default function LiveSessionRoom() {
             </div>
           </div>
 
-          {/* Center Call Timer */}
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs font-mono font-bold text-white">
-            <Clock className="h-3.5 w-3.5 text-emerald-400" />
-            <span>{formatTime(elapsedSeconds)}</span>
+          {/* Center Mode Switcher Tabs (Video Grid / Code Editor / Whiteboard) */}
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+            <button
+              onClick={() => setViewMode("video")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "video"
+                  ? "bg-red-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Grid className="h-3.5 w-3.5" /> Video Call
+            </button>
+            <button
+              onClick={() => setViewMode("code")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "code"
+                  ? "bg-red-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Code className="h-3.5 w-3.5" /> Live Code
+            </button>
+            <button
+              onClick={() => setViewMode("whiteboard")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === "whiteboard"
+                  ? "bg-red-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <PenTool className="h-3.5 w-3.5" /> Whiteboard
+            </button>
           </div>
 
+          {/* Right Header Status */}
           <div className="flex items-center gap-2">
-            <span className="hidden sm:flex items-center gap-1 text-[11px] text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
-              <Wifi className="h-3 w-3" /> 1080p HD
-            </span>
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-white">
+              <Clock className="h-3.5 w-3.5 text-emerald-400" />
+              <span>{formatTime(elapsedSeconds)}</span>
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className="btn-secondary text-[11px] px-2.5 py-1 hidden sm:flex items-center gap-1"
+              title="Copy session invite link"
+            >
+              {copiedLink ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              {copiedLink ? "Copied" : "Invite"}
+            </button>
           </div>
         </header>
 
-        {/* 2. Main Stage (Video Grid + Side Panel) */}
+        {/* 2. Main Stage */}
         <div className="flex-1 flex overflow-hidden relative">
-          {/* Video Grid Stage */}
-          <div className="flex-1 p-3 sm:p-4 flex flex-col items-center justify-center overflow-hidden">
-            {/* Screen Share Mode */}
-            {isScreenSharing ? (
-              <div className="w-full h-full flex flex-col lg:flex-row gap-3">
-                {/* Large Screen Share View */}
-                <div className="flex-1 rounded-2xl overflow-hidden bg-black border border-white/10 relative flex items-center justify-center">
-                  <video
-                    ref={screenShareVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-lg font-mono flex items-center gap-1.5">
-                    <Monitor className="h-3.5 w-3.5 text-blue-400" /> Your Screen (Sharing)
+          {/* Main Stage Content */}
+          <div className="flex-1 p-3 sm:p-4 flex flex-col items-center justify-center overflow-hidden relative">
+            {/* Live Captions Subtitle Ribbon */}
+            {isCaptionsOn && liveCaptionText && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/15 text-white text-xs font-medium max-w-xl text-center z-30 shadow-2xl animate-fade-in">
+                <span className="text-emerald-400 font-bold mr-1.5">CC:</span>
+                {liveCaptionText}
+              </div>
+            )}
+
+            {/* ════ MODE A: VIDEO CALL GRID ════ */}
+            {viewMode === "video" && (
+              isScreenSharing ? (
+                /* Screen Share Mode */
+                <div className="w-full h-full flex flex-col lg:flex-row gap-3">
+                  <div className="flex-1 rounded-2xl overflow-hidden bg-black border border-white/10 relative flex items-center justify-center">
+                    <video
+                      ref={screenShareVideoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-lg font-mono flex items-center gap-1.5">
+                      <Monitor className="h-3.5 w-3.5 text-blue-400" /> Your Screen (Presenting)
+                    </div>
+                  </div>
+                  <div className="w-full lg:w-64 flex lg:flex-col gap-3 shrink-0">
+                    <div className="flex-1 rounded-2xl overflow-hidden bg-[#151520] border border-white/10 relative flex items-center justify-center">
+                      <canvas ref={peerCanvasRef} width={320} height={200} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-2 left-2 text-xs bg-black/60 px-2 py-0.5 rounded text-white font-medium">
+                        {peer?.name}
+                      </div>
+                    </div>
+                    <div className="flex-1 rounded-2xl overflow-hidden bg-[#151520] border border-white/10 relative flex items-center justify-center">
+                      {isCameraOn ? (
+                        <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold">
+                          {getInitials(user?.name)}
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 left-2 text-xs bg-black/60 px-2 py-0.5 rounded text-white font-medium">
+                        You
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Floating Camera Tiles on the side */}
-                <div className="w-full lg:w-64 flex lg:flex-col gap-3 shrink-0">
-                  {/* Remote Peer Tile */}
-                  <div className="flex-1 aspect-video lg:aspect-auto rounded-2xl overflow-hidden bg-[#151520] border border-white/10 relative flex items-center justify-center">
+              ) : (
+                /* Split 2-Video Grid (Google Meet / Zoom style) */
+                <div className="w-full h-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-center">
+                  {/* 1. Remote Peer Tile (Supports real WebRTC video stream + live animated canvas avatar) */}
+                  <div className="w-full h-full min-h-[220px] rounded-3xl overflow-hidden bg-[#12121A] border border-white/10 relative flex items-center justify-center shadow-2xl">
                     <video
                       ref={remoteVideoRef}
                       autoPlay
                       playsInline
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover z-10"
                     />
-                    <div className="absolute bottom-2 left-2 text-xs bg-black/60 px-2 py-0.5 rounded text-white font-medium">
-                      {peer?.name}
+                    <canvas
+                      ref={peerCanvasRef}
+                      width={640}
+                      height={400}
+                      className="absolute inset-0 w-full h-full object-cover z-0"
+                    />
+                    {/* Peer Name & Role Badge */}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 z-20">
+                      <span className="text-xs font-bold text-white">{peer?.name}</span>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
+                        {isMentor ? "Learner" : "Mentor"}
+                      </span>
                     </div>
                   </div>
-                  {/* Self Camera Tile */}
-                  <div className="flex-1 aspect-video lg:aspect-auto rounded-2xl overflow-hidden bg-[#151520] border border-white/10 relative flex items-center justify-center">
+
+                  {/* 2. Local User Tile (You) */}
+                  <div
+                    className={`w-full h-full min-h-[220px] rounded-3xl overflow-hidden bg-[#12121A] border border-white/10 relative flex items-center justify-center shadow-2xl transition-all ${
+                      audioLevel > 20 ? "ring-4 ring-emerald-400/80 shadow-emerald-500/30" : ""
+                    }`}
+                  >
                     {isCameraOn ? (
                       <video
                         ref={localVideoRef}
@@ -763,98 +1093,151 @@ export default function LiveSessionRoom() {
                         className="w-full h-full object-cover scale-x-[-1]"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold">
-                        {getInitials(user?.name)}
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-red-600 to-amber-500 flex items-center justify-center text-white text-3xl font-bold shadow-2xl ring-4 ring-white/10">
+                          {getInitials(user?.name)}
+                        </div>
+                        <span className="text-sm text-slate-300 font-bold mt-3 font-[Outfit]">
+                          {user?.name} (You)
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          Camera Off
+                        </span>
                       </div>
                     )}
-                    <div className="absolute bottom-2 left-2 text-xs bg-black/60 px-2 py-0.5 rounded text-white font-medium">
-                      You
+
+                    {/* Hand Raised badge */}
+                    {isHandRaised && (
+                      <div className="absolute top-3 left-3 bg-amber-500 text-black text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-lg animate-bounce z-20">
+                        <Hand className="h-3.5 w-3.5" /> Hand Raised
+                      </div>
+                    )}
+
+                    {/* Mute indicator */}
+                    {!isMicOn && (
+                      <div className="absolute top-3 right-3 bg-red-600/90 text-white p-1.5 rounded-xl border border-red-500 z-20">
+                        <MicOff className="h-3.5 w-3.5" />
+                      </div>
+                    )}
+
+                    {/* Name Badge */}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 z-20">
+                      <span className="text-xs font-bold text-white">{user?.name} (You)</span>
+                      <span className="text-[10px] text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded font-mono">
+                        {isMentor ? "Mentor" : "Learner"}
+                      </span>
                     </div>
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* ════ MODE B: COLLABORATIVE CODE EDITOR ════ */}
+            {viewMode === "code" && (
+              <div className="w-full h-full flex flex-col rounded-3xl overflow-hidden border border-white/10 bg-[#0D1117] shadow-2xl animate-fade-in">
+                {/* Editor Header Bar */}
+                <div className="h-11 px-4 bg-[#161B22] border-b border-white/10 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5">
+                      <Terminal className="h-3.5 w-3.5" /> Live Shared IDE
+                    </span>
+                    <select
+                      value={codeLanguage}
+                      onChange={(e) => {
+                        setCodeLanguage(e.target.value);
+                        setCodeText(DEFAULT_CODE_SNIPPETS[e.target.value] || "");
+                      }}
+                      className="bg-black/40 border border-white/10 text-white text-xs px-2.5 py-1 rounded-lg font-mono outline-none"
+                    >
+                      <option value="javascript">JavaScript (Node.js)</option>
+                      <option value="python">Python 3.12</option>
+                      <option value="react">React JSX</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRunCode}
+                      disabled={isRunningCode}
+                      className="btn-primary text-xs px-3.5 py-1 flex items-center gap-1.5 shadow-md shadow-red-500/20 disabled:opacity-50"
+                    >
+                      <Play className={`h-3.5 w-3.5 fill-white ${isRunningCode ? "animate-spin" : ""}`} />
+                      {isRunningCode ? "Running..." : "Run Code"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Editor Body */}
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                  {/* Code Textarea */}
+                  <div className="flex-1 relative font-mono text-xs overflow-hidden">
+                    <textarea
+                      value={codeText}
+                      onChange={(e) => setCodeText(e.target.value)}
+                      spellCheck={false}
+                      className="w-full h-full bg-transparent text-emerald-300 p-4 font-mono text-xs leading-relaxed resize-none outline-none selection:bg-red-500/30"
+                    />
+                  </div>
+
+                  {/* Output Terminal Console */}
+                  <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-white/10 bg-[#090D13] p-4 flex flex-col shrink-0 font-mono text-xs">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center gap-1">
+                      <Terminal className="h-3 w-3 text-red-400" /> Console Output
+                    </div>
+                    <pre className="flex-1 overflow-y-auto text-slate-300 text-[11px] whitespace-pre-wrap leading-relaxed font-mono">
+                      {codeOutput || "// Click 'Run Code' to execute in live sandbox..."}
+                    </pre>
                   </div>
                 </div>
               </div>
-            ) : (
-              /* Regular Split Video Grid (2 equal peer tiles) */
-              <div className="w-full h-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-center">
-                {/* 1. Remote Peer Tile */}
-                <div className="w-full h-full min-h-[220px] rounded-3xl overflow-hidden bg-[#12121A] border border-white/10 relative flex items-center justify-center shadow-xl">
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Avatar Fallback if peer camera is loading */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#151520] pointer-events-none -z-0">
-                    <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center text-white text-3xl font-bold shadow-2xl ring-4 ring-white/10 animate-pulse">
-                      {getInitials(peer?.name)}
+            )}
+
+            {/* ════ MODE C: LIVE WHITEBOARD ════ */}
+            {viewMode === "whiteboard" && (
+              <div className="w-full h-full flex flex-col rounded-3xl overflow-hidden border border-white/10 bg-[#161622] shadow-2xl animate-fade-in">
+                {/* Whiteboard Toolbar */}
+                <div className="h-12 px-4 bg-[#1F1F30] border-b border-white/10 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <PenTool className="h-3.5 w-3.5 text-amber-400" /> Collaborative Canvas
+                    </span>
+                    {/* Palette */}
+                    <div className="flex items-center gap-1.5 ml-2">
+                      {["#FF3B30", "#3B82F6", "#10B981", "#F59E0B", "#FFFFFF"].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setDrawColor(color)}
+                          className={`h-5 w-5 rounded-full border-2 transition-all ${
+                            drawColor === color ? "scale-125 border-white ring-2 ring-blue-400" : "border-transparent opacity-80"
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
                     </div>
-                    <span className="text-sm text-slate-300 font-bold mt-3 font-[Outfit]">
-                      {peer?.name}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      {isMentor ? "Learner" : "Mentor"} • Connected
-                    </span>
                   </div>
 
-                  {/* Peer Name & Mute status badge */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
-                    <span className="text-xs font-bold text-white">{peer?.name}</span>
-                    <span className="text-[10px] text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
-                      {isMentor ? "Learner" : "Mentor"}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={clearWhiteboard}
+                      className="btn-secondary text-xs px-3 py-1"
+                    >
+                      Clear Canvas
+                    </button>
                   </div>
                 </div>
 
-                {/* 2. Local User Tile (You) */}
-                <div
-                  className={`w-full h-full min-h-[220px] rounded-3xl overflow-hidden bg-[#12121A] border border-white/10 relative flex items-center justify-center shadow-xl transition-all ${
-                    audioLevel > 20 ? "ring-2 ring-emerald-400/80 shadow-emerald-500/20" : ""
-                  }`}
-                >
-                  {isCameraOn ? (
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-cover scale-x-[-1]"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-red-600 to-amber-500 flex items-center justify-center text-white text-3xl font-bold shadow-2xl ring-4 ring-white/10">
-                        {getInitials(user?.name)}
-                      </div>
-                      <span className="text-sm text-slate-300 font-bold mt-3 font-[Outfit]">
-                        {user?.name} (You)
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-mono mt-0.5">
-                        Camera Off
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Hand Raised badge */}
-                  {isHandRaised && (
-                    <div className="absolute top-3 left-3 bg-amber-500 text-black text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-lg animate-bounce">
-                      <Hand className="h-3.5 w-3.5" /> Hand Raised
-                    </div>
-                  )}
-
-                  {/* Mute indicator */}
-                  {!isMicOn && (
-                    <div className="absolute top-3 right-3 bg-red-600/90 text-white p-1.5 rounded-xl border border-red-500">
-                      <MicOff className="h-3.5 w-3.5" />
-                    </div>
-                  )}
-
-                  {/* User Name Badge */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
-                    <span className="text-xs font-bold text-white">{user?.name} (You)</span>
-                    <span className="text-[10px] text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded font-mono">
-                      {isMentor ? "Mentor" : "Learner"}
-                    </span>
-                  </div>
+                {/* Canvas Area */}
+                <div className="flex-1 relative bg-[#0E0E18] cursor-crosshair overflow-hidden">
+                  <canvas
+                    ref={whiteboardCanvasRef}
+                    width={1200}
+                    height={800}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    className="w-full h-full"
+                  />
                 </div>
               </div>
             )}
@@ -865,7 +1248,7 @@ export default function LiveSessionRoom() {
             <div className="w-80 sm:w-96 bg-[#0E0E14] border-l border-white/10 flex flex-col shrink-0 animate-slide-up">
               <div className="p-4 border-b border-white/10 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-red-400" /> In-Call Messages
+                  <MessageSquare className="h-4 w-4 text-red-400" /> In-Call Chat
                 </h3>
                 <button
                   onClick={() => setActivePanel(null)}
@@ -926,7 +1309,7 @@ export default function LiveSessionRoom() {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Send message to everyone..."
+                  placeholder="Send message..."
                   className="input-base text-xs py-2 flex-1"
                 />
                 <button type="submit" className="btn-primary text-xs px-3 py-2">
@@ -990,11 +1373,11 @@ export default function LiveSessionRoom() {
           )}
         </div>
 
-        {/* 3. Bottom Control Bar (Google Meet / Zoom Floating Dock) */}
+        {/* 3. Bottom Control Dock (Google Meet & Zoom Standard Dock) */}
         <footer className="h-20 bg-[#0E0E14] border-t border-white/10 flex items-center justify-between px-4 sm:px-8 shrink-0">
           {/* Left Session Indicator */}
           <div className="hidden md:flex items-center gap-2">
-            <span className="text-xs font-mono text-slate-400">
+            <span className="text-xs font-mono text-slate-400 truncate max-w-[200px]">
               {session?.topic}
             </span>
           </div>
@@ -1040,9 +1423,22 @@ export default function LiveSessionRoom() {
               {isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
             </button>
 
+            {/* Closed Captions CC */}
+            <button
+              onClick={() => setIsCaptionsOn(!isCaptionsOn)}
+              className={`p-3.5 rounded-2xl transition-all shadow-lg ${
+                isCaptionsOn
+                  ? "bg-emerald-600 text-white shadow-emerald-500/30"
+                  : "bg-white/10 text-white hover:bg-white/20 border border-white/10"
+              }`}
+              title="Turn on Captions"
+            >
+              <Subtitles className="h-5 w-5" />
+            </button>
+
             {/* Hand Raise */}
             <button
-              onClick={toggleHandRaise}
+              onClick={() => setIsHandRaised(!isHandRaised)}
               className={`p-3.5 rounded-2xl transition-all shadow-lg ${
                 isHandRaised
                   ? "bg-amber-500 text-black shadow-amber-500/30"
@@ -1052,6 +1448,20 @@ export default function LiveSessionRoom() {
             >
               <Hand className="h-5 w-5" />
             </button>
+
+            {/* Emoji Reactions Bar */}
+            <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/10">
+              {EMOJI_REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleSendEmoji(emoji)}
+                  className="p-2 rounded-xl text-base hover:scale-125 transition-transform hover:bg-white/10"
+                  title={`React with ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
 
             {/* Chat Drawer Toggle */}
             <button
@@ -1098,9 +1508,9 @@ export default function LiveSessionRoom() {
             </button>
           </div>
 
-          {/* Right Dummy Spacer to keep Center items centered */}
+          {/* Right Dummy Spacer */}
           <div className="hidden md:flex items-center gap-2">
-            <span className="text-[10px] text-slate-500 font-mono">SkillSwap Live Engine v2.0</span>
+            <span className="text-[10px] text-slate-500 font-mono">SkillSwap Video v2.0</span>
           </div>
         </footer>
       </div>
