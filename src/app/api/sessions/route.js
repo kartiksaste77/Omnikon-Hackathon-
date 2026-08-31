@@ -54,6 +54,20 @@ export async function POST(req) {
       }
     });
 
+    // Notify both parties
+    const otherUserId = userId === mentorId ? learnerId : mentorId;
+    const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    const notifContent = `📅 New session scheduled: "${session.topic}" on ${date} at ${time}`;
+    
+    const notif = await prisma.notification.create({
+      data: { userId: otherUserId, type: "session", content: notifContent, read: false }
+    });
+    try {
+      if (global._io) {
+        global._io.to(`user:${otherUserId}`).emit("notification:new", notif);
+      }
+    } catch {}
+
     return NextResponse.json(session, { status: 201 });
   } catch (err) {
     console.error("Create session error:", err);

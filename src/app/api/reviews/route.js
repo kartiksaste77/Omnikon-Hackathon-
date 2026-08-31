@@ -56,6 +56,22 @@ export async function POST(req) {
       }
     });
 
+    const reviewer = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    const stars = "⭐".repeat(review.rating);
+    const notif = await prisma.notification.create({
+      data: {
+        userId: revieweeId,
+        type: "review",
+        content: `${stars} ${reviewer?.name} left you a ${review.rating}-star review!`,
+        read: false,
+      }
+    });
+    try {
+      if (global._io) {
+        global._io.to(`user:${revieweeId}`).emit("notification:new", notif);
+      }
+    } catch {}
+
     return NextResponse.json(review, { status: 201 });
   } catch (err) {
     console.error("Create review error:", err);

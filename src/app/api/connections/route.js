@@ -57,13 +57,20 @@ export async function POST(req) {
 
     // Add notification
     const sender = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-    await prisma.notification.create({
+    const notif = await prisma.notification.create({
       data: {
         userId: receiverId,
-        type: "connection_request",
-        content: `${sender?.name || "Someone"} sent you a connection request`
+        type: "connection",
+        content: `🤝 ${sender?.name || "Someone"} sent you a connection request`
       }
     });
+
+    // Emit real-time notification
+    try {
+      if (global._io) {
+        global._io.to(`user:${receiverId}`).emit("notification:new", notif);
+      }
+    } catch {}
 
     return NextResponse.json(connection, { status: 201 });
   } catch (err) {
