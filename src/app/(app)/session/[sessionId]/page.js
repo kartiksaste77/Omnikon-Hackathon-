@@ -10,7 +10,7 @@ import {
   Send, Star, CheckCircle2, AlertCircle,
   Volume2, ShieldCheck, Play, ArrowLeft, Clock, X,
   Code, PenTool, Copy, Check, Terminal, ExternalLink,
-  RefreshCw, Radio
+  RefreshCw, Radio, Award
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
