@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import apiClient from "@/lib/apiClient";
-import socketService from "@/lib/socket";
+import { socketService, getSocket } from "@/lib/socket";
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
   MessageSquare, Users, Hand, Settings, PhoneOff,

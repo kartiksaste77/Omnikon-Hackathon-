@@ -1,11 +1,14 @@
 // src/lib/socket.js — Client-side Socket.io singleton
 "use client";
 import { io } from "socket.io-client";
+import apiClient from "./apiClient";
 
 let socket = null;
 
 export function getSocket(token) {
   if (socket && socket.connected) return socket;
+
+  const authToken = token || apiClient?.getToken?.();
 
   // Disconnect stale socket
   if (socket) {
@@ -14,7 +17,7 @@ export function getSocket(token) {
   }
 
   socket = io(typeof window !== "undefined" ? window.location.origin : "", {
-    auth: { token: token || null },
+    auth: { token: authToken || null },
     transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: 5,
@@ -42,5 +45,11 @@ export function disconnectSocket() {
     socket = null;
   }
 }
+
+export const socketService = {
+  connect: (token) => getSocket(token),
+  getSocket: (token) => getSocket(token),
+  disconnect: () => disconnectSocket(),
+};
 
 export default getSocket;
