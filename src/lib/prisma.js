@@ -1,7 +1,6 @@
 // lib/prisma.js — Singleton PrismaClient for Prisma 7 with LibSQL adapter
 import { PrismaClient } from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
-import { createClient } from "@libsql/client";
 import path from "path";
 
 const globalForPrisma = globalThis;
@@ -9,11 +8,11 @@ const globalForPrisma = globalThis;
 function getPrisma() {
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
-  const dbPath = path.resolve(process.cwd(), "prisma", "dev.db").replace(/\\/g, "/");
-  const libsql = createClient({
-    url: `file:${dbPath}`,
-  });
-  const adapter = new PrismaLibSql(libsql);
+  const dbPath = path.resolve(process.cwd(), "dev.db").replace(/\\/g, "/");
+  const url = `file:${dbPath}`;
+
+  // In Prisma 7, PrismaLibSql takes the config object { url } directly
+  const adapter = new PrismaLibSql({ url });
 
   const client = new PrismaClient({
     adapter,

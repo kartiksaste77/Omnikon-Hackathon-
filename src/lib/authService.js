@@ -31,8 +31,10 @@ export const authService = {
 
       if (data.token) apiClient.setToken(data.token);
       
-      // Also register in local client state for instant offline reactivity
-      const localUser = db.createUser({ id: data.user.id, name, email, password });
+      let localUser = db.getUserByEmail(email);
+      if (!localUser) {
+        localUser = db.createUser({ id: data.user.id, name, email, password });
+      }
       this._setSession(localUser);
 
       return { success: true, user: data.user };

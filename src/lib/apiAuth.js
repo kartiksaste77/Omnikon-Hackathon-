@@ -5,8 +5,8 @@ export function getUserFromRequest(req) {
   try {
     const auth = req.headers.get("authorization") || "";
     const token = auth.replace("Bearer ", "").trim();
-    if (!token) return null;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || "skillswap_jwt_secret_key_2026_omnikon_hackathon";
+    const decoded = jwt.verify(token, secret);
     return decoded.userId;
   } catch {
     return null;

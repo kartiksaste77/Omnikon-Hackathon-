@@ -40,7 +40,7 @@ const SEED_SKILLS = [
 async function seedSkills() {
   const count = await prisma.skill.count();
   if (count === 0) {
-    await prisma.skill.createMany({ data: SEED_SKILLS, skipDuplicates: true });
+    await prisma.skill.createMany({ data: SEED_SKILLS });
   }
 }
 
@@ -63,7 +63,8 @@ export async function POST(req) {
       data: { name, email: email.toLowerCase(), password: hashed },
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const secret = process.env.JWT_SECRET || "skillswap_jwt_secret_key_2026_omnikon_hackathon";
+    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "7d" });
     const { password: _, ...safeUser } = user;
     return NextResponse.json({ token, user: safeUser }, { status: 201 });
   } catch (err) {
