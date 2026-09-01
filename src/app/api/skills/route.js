@@ -1,16 +1,44 @@
-// api/skills/route.js
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { db } from "@/lib/db";
 
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q");
-  const category = searchParams.get("category");
+  try {
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
 
-  const where = {};
-  if (category) where.category = category;
-  if (q) where.name = { contains: q };
+    let skills = db.getSkills();
 
-  const skills = await prisma.skill.findMany({ where, orderBy: { category: "asc" } });
-  return NextResponse.json(skills);
+    if (category && category !== "All") {
+      skills = skills.filter((s) => s.category.toLowerCase() === category.toLowerCase());
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      skills = skills.filter(
+        (s) =>
+          s.title.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          (s.tags && s.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+    }
+
+    return NextResponse.json({ skills });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    if (!body.title || !body.category) {
+      return NextResponse.json({ error: "Title and Category are required" }, { status: 400 });
+    }
+
+    const newSkill = db.createSkill(body);
+    return NextResponse.json({ success: true, skill: newSkill });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

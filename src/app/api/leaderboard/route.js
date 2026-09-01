@@ -1,27 +1,30 @@
-// api/leaderboard/route.js
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { db } from "@/lib/db";
 
 export async function GET() {
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      avatar: true,
-      xp: true,
-      rating: true,
-      streak: true,
-      sessionsCompleted: true,
-      skillCoins: true,
-    },
-    orderBy: { xp: "desc" },
-    take: 50
-  });
+  try {
+    const users = db.getUsers();
+    
+    // Sort by XP descending for leaderboard
+    const leaderboard = [...users]
+      .sort((a, b) => (b.xp || 0) - (a.xp || 0))
+      .map((u, idx) => ({
+        rank: idx + 1,
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        role: u.role,
+        department: u.department,
+        xp: u.xp || 100,
+        coins: u.coins || 50,
+        rating: u.rating || 5.0,
+        completedHours: u.completedHours || 0,
+        streak: u.streak || 1,
+        badges: u.badges || []
+      }));
 
-  const ranked = users.map((u, idx) => ({
-    rank: idx + 1,
-    ...u
-  }));
-
-  return NextResponse.json(ranked);
+    return NextResponse.json({ leaderboard });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

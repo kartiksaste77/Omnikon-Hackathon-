@@ -1,62 +1,46 @@
-// api/sessions/route.js
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getUserFromRequest, unauthorized } from "@/lib/apiAuth";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req) {
-  const userId = getUserFromRequest(req);
-  if (!userId) return unauthorized();
-
-  const sessions = await prisma.session.findMany({
-    where: {
-      OR: [{ mentorId: userId }, { learnerId: userId }]
-    },
-    include: {
-      mentor: { select: { id: true, name: true, avatar: true, rating: true } },
-      learner: { select: { id: true, name: true, avatar: true, rating: true } },
-      skill: true
-    },
-    orderBy: { createdAt: "desc" }
-  });
-
-  return NextResponse.json(sessions);
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+    const sessions = db.getSessions(userId);
+    return NextResponse.json({ sessions });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function POST(req) {
-  const userId = getUserFromRequest(req);
-  if (!userId) return unauthorized();
-
   try {
-    const { peerId, skillId, topic, date, time = "16:00", duration = 60, role = "teach" } = await req.json();
+    const body = await req.json();
+    const currentUser = getCurrentUser(req);
 
-    if (!peerId || !date) {
-      return NextResponse.json({ error: "peerId and date required" }, { status: 400 });
+    if (!body.mentorId || !body.skillTitle) {
+      return NextResponse.json({ error: "mentorId and skillTitle are required" }, { status: 400 });
     }
 
-    const mentorId = role === "teach" ? userId : peerId;
-    const learnerId = role === "teach" ? peerId : userId;
+    const mentor = db.getUserById(body.mentorId);
 
-    const session = await prisma.session.create({
-      data: {
-        mentorId,
-        learnerId,
-        skillId: skillId || null,
-        topic: topic || "Skill Exchange Session",
-        date,
-        time,
-        duration: parseInt(duration, 10) || 60,
-        status: "upcoming"
-      },
-      include: {
-        mentor: { select: { id: true, name: true, avatar: true } },
-        learner: { select: { id: true, name: true, avatar: true } },
-        skill: true
-      }
-    });
+    const sessionData = {
+      mentorId: body.mentorId,
+      mentorName: mentor?.name || body.mentorName || "Peer Mentor",
+      mentorAvatar: mentor?.avatar || body.mentorAvatar,
+      learnerId: currentUser.id,
+      learnerName: currentUser.name,
+      learnerAvatar: currentUser.avatar,
+      skillTitle: body.skillTitle,
+      category: body.category || "General",
+      scheduledAt: body.scheduledAt || new Date(Date.now() + 3600000 * 24).toISOString(),
+      type: body.type || "VIRTUAL",
+      notes: body.notes || "Collaborative peer session booked via SkillSwap."
+    };
 
-    return NextResponse.json(session, { status: 201 });
+    const newSession = db.createSession(sessionData);
+    return NextResponse.json({ success: true, session: newSession });
   } catch (err) {
-    console.error("Create session error:", err);
-    return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

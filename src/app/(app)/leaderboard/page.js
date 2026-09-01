@@ -1,90 +1,155 @@
 "use client";
-import db from "@/lib/mockDatabase";
-import { Trophy, Star, Flame, Coins, Medal, Crown } from "lucide-react";
+
+import React, { useState } from "react";
+import { 
+  Trophy, 
+  Medal, 
+  Flame, 
+  Star, 
+  Zap, 
+  Clock, 
+  Award,
+  Crown,
+  Sparkles
+} from "lucide-react";
+import { INITIAL_USERS } from "@/lib/seedData";
 
 export default function LeaderboardPage() {
-  const leaderboard = db.getLeaderboard();
+  const [leaderboard, setLeaderboard] = useState(
+    [...INITIAL_USERS].sort((a, b) => (b.xp || 0) - (a.xp || 0))
+  );
 
-  const getInitials = (name) => name?.split(" ").map(n => n[0]).join("").toUpperCase() || "?";
-  const getRankColor = (rank) => {
-    if (rank === 1) return "from-amber-500 to-yellow-400";
-    if (rank === 2) return "from-slate-400 to-slate-300";
-    if (rank === 3) return "from-amber-700 to-amber-600";
-    return "from-slate-700 to-slate-600";
-  };
-  const getRankIcon = (rank) => {
-    if (rank === 1) return <Crown className="h-5 w-5 text-amber-400" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-slate-300" />;
-    if (rank === 3) return <Medal className="h-5 w-5 text-amber-600" />;
-    return <span className="text-sm font-mono text-slate-500 font-bold">#{rank}</span>;
-  };
+  const topThree = leaderboard.slice(0, 3);
+  const rest = leaderboard.slice(3);
 
   return (
-    <div className="space-y-6 max-w-3xl animate-fade-in">
+    <div className="space-y-8 animate-in fade-in">
+      
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white font-[Outfit] flex items-center gap-2"><Trophy className="h-6 w-6 text-amber-400" /> Leaderboard</h1>
-        <p className="text-sm text-slate-400 mt-1">Top skill swappers ranked by XP, teaching hours, and community impact</p>
-      </div>
-
-      {/* Top 3 Podium */}
-      <div className="grid grid-cols-3 gap-3">
-        {leaderboard.slice(0, 3).map((u, i) => (
-          <div key={u.id} className={`glass rounded-2xl p-5 text-center space-y-2 ${i === 0 ? "border border-amber-500/30 glass-red" : ""}`}>
-            <div className="mx-auto">{getRankIcon(u.rank)}</div>
-            <div className={`h-14 w-14 mx-auto rounded-2xl bg-gradient-to-br ${getRankColor(u.rank)} flex items-center justify-center text-white font-bold text-lg`}>
-              {getInitials(u.name)}
-            </div>
-            <div className="text-sm font-bold text-white">{u.name}</div>
-            <div className="text-xs text-slate-400">{u.location}</div>
-            <div className="flex justify-center gap-3 text-xs font-mono">
-              <span className="text-emerald-400">{u.xp} XP</span>
-              <span className="text-amber-400">{u.skillCoins} 🪙</span>
-            </div>
-            {u.badges?.length > 0 && (
-              <div className="flex justify-center gap-1 pt-1">
-                {u.badges.slice(0, 3).map(b => <span key={b.id} title={b.name} className="text-sm">{b.icon}</span>)}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Full Rankings */}
-      <div className="glass rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-12 gap-2 p-3 text-[10px] uppercase font-mono font-bold text-slate-500 border-b border-white/10">
-          <div className="col-span-1">Rank</div>
-          <div className="col-span-4">User</div>
-          <div className="col-span-1 text-center">XP</div>
-          <div className="col-span-1 text-center">Coins</div>
-          <div className="col-span-1 text-center"><Flame className="h-3 w-3 inline" /></div>
-          <div className="col-span-1 text-center"><Star className="h-3 w-3 inline" /></div>
-          <div className="col-span-1 text-center">Sess.</div>
-          <div className="col-span-2">Badges</div>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-2">
+          <Trophy className="h-3.5 w-3.5 text-amber-400" />
+          Campus Rankings & Gamification
         </div>
-        {leaderboard.map(u => (
-          <div key={u.id} className={`grid grid-cols-12 gap-2 p-3 items-center text-sm border-b border-white/5 hover:bg-white/[0.02] transition-colors ${u.rank <= 3 ? "bg-amber-500/5" : ""}`}>
-            <div className="col-span-1 font-mono font-bold text-slate-400">#{u.rank}</div>
-            <div className="col-span-4 flex items-center gap-2">
-              <div className={`h-7 w-7 rounded-lg bg-gradient-to-br ${getRankColor(u.rank)} flex items-center justify-center text-white text-[10px] font-bold shrink-0`}>
-                {getInitials(u.name)}
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-white">{u.name}</div>
-                <div className="text-[10px] text-slate-500">{u.location}</div>
-              </div>
-            </div>
-            <div className="col-span-1 text-center font-mono text-xs text-emerald-400 font-bold">{u.xp || 0}</div>
-            <div className="col-span-1 text-center font-mono text-xs text-amber-400">{u.skillCoins || 0}</div>
-            <div className="col-span-1 text-center font-mono text-xs text-orange-400">{u.streak || 0}d</div>
-            <div className="col-span-1 text-center font-mono text-xs text-yellow-400">{u.rating || "—"}</div>
-            <div className="col-span-1 text-center font-mono text-xs text-slate-400">{u.sessionsCompleted || 0}</div>
-            <div className="col-span-2 flex gap-1">
-              {u.badges?.slice(0, 3).map(b => <span key={b.id} title={b.name} className="text-xs">{b.icon}</span>)}
-              {(!u.badges || u.badges.length === 0) && <span className="text-[10px] text-slate-600">—</span>}
-            </div>
-          </div>
-        ))}
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Mentor Leaderboard</h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          Top student mentors ranked by total XP earned, hours taught, reliability rating, and active streaks.
+        </p>
       </div>
+
+      {/* Top 3 Podium Showcase */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+        
+        {/* Rank 2 (Silver) */}
+        {topThree[1] && (
+          <div className="glass-card p-6 border border-slate-400/30 flex flex-col items-center text-center space-y-3 relative order-2 md:order-1">
+            <div className="absolute -top-4 h-8 w-8 rounded-full bg-slate-400/20 text-slate-300 border border-slate-400/40 flex items-center justify-center font-bold text-xs">
+              2
+            </div>
+            <img
+              src={topThree[1].avatar}
+              alt={topThree[1].name}
+              className="h-16 w-16 rounded-full object-cover ring-4 ring-slate-400/40 shadow-lg"
+            />
+            <div>
+              <h3 className="text-sm font-bold text-white">{topThree[1].name}</h3>
+              <p className="text-xs text-slate-400">{topThree[1].role.split("&")[0]}</p>
+            </div>
+            <div className="text-xs font-bold text-indigo-300">{topThree[1].xp} XP • {topThree[1].completedHours} hrs</div>
+          </div>
+        )}
+
+        {/* Rank 1 (Gold) */}
+        {topThree[0] && (
+          <div className="glass-card p-6 border border-amber-500/50 bg-gradient-to-b from-amber-950/30 to-slate-900 flex flex-col items-center text-center space-y-3 relative order-1 md:order-2 md:-mt-4 shadow-xl shadow-amber-500/10">
+            <div className="absolute -top-5 h-10 w-10 rounded-full bg-amber-500 text-slate-950 font-extrabold text-sm flex items-center justify-center shadow-lg shadow-amber-500/30">
+              👑 1
+            </div>
+            <img
+              src={topThree[0].avatar}
+              alt={topThree[0].name}
+              className="h-20 w-20 rounded-full object-cover ring-4 ring-amber-400 shadow-xl"
+            />
+            <div>
+              <h3 className="text-base font-extrabold text-white">{topThree[0].name}</h3>
+              <p className="text-xs text-amber-300">{topThree[0].role}</p>
+            </div>
+            <div className="text-sm font-extrabold text-amber-300">{topThree[0].xp} XP • {topThree[0].completedHours} hrs taught</div>
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Campus Champion
+            </span>
+          </div>
+        )}
+
+        {/* Rank 3 (Bronze) */}
+        {topThree[2] && (
+          <div className="glass-card p-6 border border-amber-700/30 flex flex-col items-center text-center space-y-3 relative order-3">
+            <div className="absolute -top-4 h-8 w-8 rounded-full bg-amber-700/20 text-amber-400 border border-amber-700/40 flex items-center justify-center font-bold text-xs">
+              3
+            </div>
+            <img
+              src={topThree[2].avatar}
+              alt={topThree[2].name}
+              className="h-16 w-16 rounded-full object-cover ring-4 ring-amber-700/40 shadow-lg"
+            />
+            <div>
+              <h3 className="text-sm font-bold text-white">{topThree[2].name}</h3>
+              <p className="text-xs text-slate-400">{topThree[2].role.split("&")[0]}</p>
+            </div>
+            <div className="text-xs font-bold text-indigo-300">{topThree[2].xp} XP • {topThree[2].completedHours} hrs</div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Leaderboard Table */}
+      <div className="glass-card p-6 border border-white/10 space-y-4">
+        <h3 className="text-sm font-bold text-white">Full Campus Standings</h3>
+
+        <div className="divide-y divide-white/5">
+          {leaderboard.map((student, idx) => (
+            <div key={student.id} className="py-3.5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
+                <img
+                  src={student.avatar}
+                  alt={student.name}
+                  className="h-9 w-9 rounded-full object-cover ring-2 ring-white/10"
+                />
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                    {student.name}
+                    {student.streak >= 10 && (
+                      <span className="text-[10px] text-rose-400 flex items-center gap-0.5">
+                        <Flame className="h-3 w-3 fill-rose-400" /> {student.streak}d
+                      </span>
+                    )}
+                  </h4>
+                  <p className="text-[11px] text-slate-400">{student.role}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6 text-right">
+                <div className="hidden sm:block">
+                  <p className="text-xs font-semibold text-slate-200">{student.completedHours} hrs</p>
+                  <p className="text-[10px] text-slate-500">Taught</p>
+                </div>
+
+                <div className="hidden sm:block">
+                  <p className="text-xs font-semibold text-amber-300">★ {student.rating}</p>
+                  <p className="text-[10px] text-slate-500">{student.totalReviews || 12} reviews</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-indigo-300">{student.xp} XP</p>
+                  <p className="text-[10px] text-indigo-400 font-medium">{student.coins} Coins</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }

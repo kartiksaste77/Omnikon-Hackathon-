@@ -1,103 +1,139 @@
 "use client";
-import { useState } from "react";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Zap, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { Sparkles, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { INITIAL_USERS } from "@/lib/seedData";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState("alex@skillswap.edu");
+  const [password, setPassword] = useState("password123");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
-    setTimeout(() => {
-      const result = login(email, password);
-      if (result.success) {
-        router.push("/dashboard");
-      } else {
-        setError(result.error);
-      }
+    setErrorMessage("");
+
+    const res = await login(email, password);
+    if (!res.success) {
+      setErrorMessage(res.error || "Authentication failed.");
       setLoading(false);
-    }, 500);
+      return;
+    }
+
+    router.push("/dashboard");
+  };
+
+  const handleQuickLogin = async (demoUser) => {
+    setLoading(true);
+    setErrorMessage("");
+    const res = await login(demoUser.email, "password123");
+    if (res.success) {
+      router.push("/dashboard");
+    } else {
+      setErrorMessage(res.error || "Quick login failed.");
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#09090D] relative">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="bg-dots absolute inset-0 opacity-20 pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-600 to-amber-500 flex items-center justify-center shadow-lg shadow-red-600/30">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-extrabold tracking-tight font-[Outfit]">Skill<span className="text-red-500">Swap</span></span>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#090d16] bg-radial relative">
+      <div className="w-full max-w-md glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl relative z-10 space-y-6 animate-in fade-in">
+        
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <Link href="/" className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-400 shadow-lg shadow-indigo-500/30 mb-2">
+            <Sparkles className="h-6 w-6 text-white" />
           </Link>
-          <h1 className="text-2xl font-bold text-white font-[Outfit]">Welcome Back</h1>
-          <p className="text-sm text-slate-400 mt-1">Log in to continue swapping skills</p>
+          <h2 className="text-2xl font-bold text-white">Welcome back to SkillSwap</h2>
+          <p className="text-xs text-slate-400">Secure JWT Authentication with time-bank wallet sync</p>
         </div>
 
-        <div className="glass rounded-2xl p-6 sm:p-8 space-y-6">
-          {error && (
-            <div className="bg-red-950/80 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl text-sm">{error}</div>
-          )}
+        {/* Error Alert */}
+        {errorMessage && (
+          <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2 animate-in shake">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
-          {/* Quick demo login hint */}
-          <div className="bg-slate-900/80 border border-white/10 rounded-xl p-3 text-xs text-slate-400 space-y-1">
-            <p className="font-semibold text-slate-300">🎮 Demo Accounts:</p>
-            <p><strong>kartik@campus.edu</strong> / password123</p>
-            <p><strong>sarah@campus.edu</strong> / password123</p>
+        {/* Quick Demo Student Switcher */}
+        <div className="p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block text-center">
+            ⚡ 1-Click Instant Demo Login:
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            {INITIAL_USERS.slice(0, 4).map((u) => (
+              <button
+                key={u.id}
+                onClick={() => handleQuickLogin(u)}
+                className="flex items-center gap-2 p-2 rounded-xl bg-white/5 hover:bg-indigo-600/20 hover:border-indigo-500/30 border border-transparent text-left transition-all group"
+              >
+                <img src={u.avatar} alt={u.name} className="h-7 w-7 rounded-full object-cover" />
+                <div className="overflow-hidden">
+                  <p className="text-[11px] font-semibold text-white truncate group-hover:text-indigo-300">{u.name}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{u.role.split("&")[0]}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Standard Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Campus Email Address</label>
+            <div className="relative">
+              <Mail className="h-4 w-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full glass-input pl-10 pr-4 py-2.5 text-xs text-white"
+                placeholder="student@skillswap.edu"
+              />
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                <input
-                  type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@campus.edu"
-                  className="input-base pl-10"
-                />
-              </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Password</label>
+            <div className="relative">
+              <Lock className="h-4 w-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full glass-input pl-10 pr-4 py-2.5 text-xs text-white"
+                placeholder="••••••••"
+              />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                <input
-                  type={showPw ? "text" : "password"} required value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="input-base pl-10 pr-10"
-                />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
+          </div>
 
-            <div className="flex justify-end">
-              <Link href="/auth/forgot-password" className="text-xs text-red-400 hover:text-red-300">Forgot password?</Link>
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-primary py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30"
+          >
+            {loading ? "Verifying Credentials..." : "Sign In to Dashboard"}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </form>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-              {loading ? "Signing in..." : "Sign In"} <ArrowRight className="h-4 w-4" />
-            </button>
-          </form>
+        <p className="text-center text-xs text-slate-400">
+          Don't have an account yet?{" "}
+          <Link href="/auth/register" className="text-indigo-400 hover:text-indigo-300 font-semibold">
+            Create Campus Profile
+          </Link>
+        </p>
 
-          <p className="text-center text-sm text-slate-400">
-            Don't have an account? <Link href="/auth/register" className="text-red-400 hover:text-red-300 font-semibold">Create one</Link>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -1,13 +1,16 @@
-// api/auth/me/route.js — get current user from JWT
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getUserFromRequest, unauthorized } from "@/lib/apiAuth";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req) {
-  const userId = getUserFromRequest(req);
-  if (!userId) return unauthorized();
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return unauthorized();
-  const { password: _, ...safe } = user;
-  return NextResponse.json(safe);
+  try {
+    const user = getCurrentUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { passwordHash, ...safeUser } = user;
+    return NextResponse.json({ success: true, user: safeUser });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }

@@ -1,99 +1,165 @@
 "use client";
-// ============================================================================
-// SkillSwap — Auth Context Provider
-// Wraps the app with authentication state and provides auth functions
-// ============================================================================
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import authService from "@/lib/authService";
-import db from "@/lib/mockDatabase";
-import apiClient from "@/lib/apiClient";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(2);
 
-  // Check session on mount + sync from SQLite /me endpoint
+  // Initialize auth from /api/auth/me or stored token
   useEffect(() => {
-    async function initAuth() {
-      const currentUser = authService.getCurrentUser();
-      if (currentUser) setUser(currentUser);
-
-      // Verify token with backend SQLite
-      const token = apiClient.getToken();
-      if (token) {
-        try {
-          const res = await fetch("/api/auth/me", {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setUser(data);
+    const initAuth = async () => {
+      try {
+        const storedToken = localStorage.getItem("skillswap_jwt");
+        const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+        
+        const res = await fetch("/api/auth/me", { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            setUser(data.user);
+            setToken(storedToken);
           }
-        } catch (e) {
-          console.warn("Backend me verification fallback", e);
         }
+      } catch (err) {
+        console.warn("Auth check failed:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }
+    };
+
     initAuth();
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const result = await authService.login(email, password);
-    if (result.success) setUser(result.user);
-    return result;
-  }, []);
-
-  const register = useCallback(async (name, email, password) => {
-    const result = await authService.register(name, email, password);
-    if (result.success) setUser(result.user);
-    return result;
-  }, []);
-
-  const logout = useCallback(() => {
-    authService.logout();
-    setUser(null);
-  }, []);
-
-  const resetPassword = useCallback((email) => {
-    return authService.resetPassword(email);
-  }, []);
-
-  const updateProfile = useCallback(async (updates) => {
-    if (!user) return { success: false, error: "Not authenticated" };
-    const result = await authService.updateProfile(user.id, updates);
-    if (result.success) setUser(result.user);
-    return result;
-  }, [user]);
-
-  // Refresh user data from DB
-  const refreshUser = useCallback(async () => {
+  // Fetch pending connection requests count
+  useEffect(() => {
     if (!user) return;
-    const token = apiClient.getToken();
-    if (token) {
+    const fetchPendingCount = async () => {
       try {
-        const res = await fetch("/api/auth/me", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch("/api/connections", { headers });
         if (res.ok) {
           const data = await res.json();
-          setUser(data);
-          return;
+          setPendingRequestsCount(data.incomingRequests?.length || 0);
         }
       } catch (e) {}
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 5000);
+    return () => clearInterval(interval);
+  }, [user, token]);
+
+  // Real Login
+  const login = async (email, password) => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || "Login failed" };
+      }
+
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem("skillswap_jwt", data.token);
+      localStorage.setItem("skillswap_user", JSON.stringify(data.user));
+
+      return { success: true, user: data.user };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-    const fresh = db.getUser(user.id);
-    if (fresh) {
-      const { password, ...safe } = fresh;
-      setUser(safe);
+  };
+
+  // Real Registration
+  const register = async (formData) => {
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || "Registration failed" };
+      }
+
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem("skillswap_jwt", data.token);
+      localStorage.setItem("skillswap_user", JSON.stringify(data.user));
+
+      return { success: true, user: data.user };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-  }, [user]);
+  };
+
+  // Real Logout
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {}
+
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("skillswap_jwt");
+    localStorage.removeItem("skillswap_user");
+    window.location.href = "/auth/login";
+  };
+
+  const updateUser = (updates) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem("skillswap_user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const modifyCoins = (amount) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const newCoins = Math.max(0, (prev.coins || 0) + amount);
+      const updated = { ...prev, coins: newCoins };
+      localStorage.setItem("skillswap_user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const modifyXp = (amount) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const newXp = (prev.xp || 0) + amount;
+      const updated = { ...prev, xp: newXp };
+      localStorage.setItem("skillswap_user", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, resetPassword, updateProfile, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        pendingRequestsCount,
+        login,
+        register,
+        logout,
+        updateUser,
+        modifyCoins,
+        modifyXp,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -101,8 +167,8 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 }
-
-export default AuthContext;

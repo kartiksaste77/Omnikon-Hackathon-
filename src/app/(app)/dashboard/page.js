@@ -1,160 +1,283 @@
 "use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import db from "@/lib/mockDatabase";
-import { Sparkles, Calendar, MessageSquare, Trophy, BookOpen, GraduationCap, ArrowRight, TrendingUp, Coins, Flame, Star, Users } from "lucide-react";
+import { 
+  Coins, 
+  Flame, 
+  Zap, 
+  Clock, 
+  Sparkles, 
+  ArrowRight, 
+  Video, 
+  Calendar, 
+  Compass, 
+  CheckCircle2,
+  BookOpen,
+  Award,
+  ChevronRight
+} from "lucide-react";
+import { INITIAL_SESSIONS, INITIAL_USERS } from "@/lib/seedData";
+import QRCheckInModal from "@/components/QRCheckInModal";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  if (!user) return null;
+  const [sessions, setSessions] = useState(INITIAL_SESSIONS);
+  const [activeCheckInSession, setActiveCheckInSession] = useState(null);
 
-  const sessions = db.getSessions(user.id);
-  const upcoming = sessions.filter(s => s.status === "upcoming");
-  const completed = sessions.filter(s => s.status === "completed");
-  const teachSkills = db.getUserTeachSkills(user.id);
-  const learnSkills = db.getUserLearnSkills(user.id);
-  const connections = db.getAcceptedConnections(user.id);
-  const badges = db.getUserBadges(user.id);
-  const txs = db.getTransactions(user.id);
+  const upcomingSession = sessions.find((s) => s.status === "CONFIRMED");
+  const topMatch = INITIAL_USERS.find((u) => u.id === "user_2"); // Priya Sharma
 
   return (
-    <div className="space-y-6 max-w-6xl animate-fade-in">
+    <div className="space-y-8 animate-in fade-in">
+      
       {/* Welcome Banner */}
-      <div className="glass-red rounded-2xl p-6 relative overflow-hidden">
-        <div className="bg-dots absolute inset-0 opacity-20 pointer-events-none" />
-        <div className="relative z-10">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white font-[Outfit]">
-            Welcome back, {user.name?.split(" ")[0]}! 👋
-          </h1>
-          <p className="text-sm text-slate-300 mt-1">Ready to teach, learn, and grow today?</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/matches" className="btn-primary text-xs px-4 py-2"><Sparkles className="h-3.5 w-3.5" /> Find Matches</Link>
-            <Link href="/ai/assistant" className="btn-secondary text-xs px-4 py-2">Ask AI Assistant</Link>
+      <div className="relative rounded-3xl p-6 sm:p-8 overflow-hidden glass-card border border-indigo-500/20 bg-gradient-to-r from-indigo-950/60 via-slate-900/80 to-cyan-950/40">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
+              <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+              Zero-Cost Campus Mentorship
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Hello, <span className="text-gradient">{user?.name || "Alex"}</span> 👋
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              You have <strong className="text-amber-400">{user?.coins ?? 50} SkillCoins</strong> in your time-bank wallet. Teach 1 hour to earn 10 coins, or spend coins to learn any skill on campus!
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/matches"
+              className="btn-primary px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30"
+            >
+              <Sparkles className="h-4 w-4 text-cyan-300" />
+              Find AI Matches
+            </Link>
+            <Link
+              href="/skills"
+              className="btn-secondary px-5 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2"
+            >
+              <BookOpen className="h-4 w-4 text-slate-400" />
+              Browse Skills
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {[
-          { label: "SkillCoins", value: user.skillCoins || 0, icon: <Coins className="h-4 w-4 text-amber-400" />, color: "amber" },
-          { label: "XP", value: user.xp || 0, icon: <TrendingUp className="h-4 w-4 text-emerald-400" />, color: "emerald" },
-          { label: "Streak", value: `${user.streak || 0}d`, icon: <Flame className="h-4 w-4 text-orange-400" />, color: "orange" },
-          { label: "Sessions", value: user.sessionsCompleted || 0, icon: <Calendar className="h-4 w-4 text-sky-400" />, color: "sky" },
-          { label: "Rating", value: user.rating || "—", icon: <Star className="h-4 w-4 text-yellow-400" />, color: "yellow" },
-          { label: "Connections", value: connections.length, icon: <Users className="h-4 w-4 text-purple-400" />, color: "purple" },
-        ].map((stat, i) => (
-          <div key={i} className="glass rounded-xl p-4 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">{stat.label}</span>
-              {stat.icon}
-            </div>
-            <div className="text-xl font-extrabold text-white font-mono">{stat.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Sessions */}
-        <div className="glass rounded-2xl p-5 space-y-4">
+      {/* Quick Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Time-Bank Wallet */}
+        <div className="glass-card p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white flex items-center gap-2"><Calendar className="h-4 w-4 text-red-400" /> Upcoming Sessions</h2>
-            <Link href="/sessions" className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">View All <ArrowRight className="h-3 w-3" /></Link>
+            <span className="text-xs font-semibold text-slate-400">SkillCoin Balance</span>
+            <div className="h-8 w-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+              <Coins className="h-4 w-4" />
+            </div>
           </div>
-          {upcoming.length === 0 ? (
-            <p className="text-sm text-slate-500 py-4 text-center">No upcoming sessions. <Link href="/matches" className="text-red-400">Find a match!</Link></p>
-          ) : (
-            upcoming.slice(0, 3).map(s => {
-              const peer = db.getUser(s.mentorId === user.id ? s.learnerId : s.mentorId);
-              const skill = db.getSkills().find(sk => sk.id === s.skillId);
-              return (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/5 text-sm">
-                  <div>
-                    <div className="font-semibold text-white">{s.topic || skill?.name}</div>
-                    <div className="text-xs text-slate-400">with {peer?.name} • {s.date} at {s.time}</div>
-                  </div>
-                  <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${s.mentorId === user.id ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
-                    {s.mentorId === user.id ? "Teaching" : "Learning"}
-                  </span>
-                </div>
-              );
-            })
-          )}
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-amber-300">{user?.coins ?? 50}</span>
+            <span className="text-xs text-slate-400 font-medium">Coins</span>
+          </div>
+          <div className="text-[11px] text-slate-400 flex items-center gap-1">
+            <span className="text-emerald-400 font-semibold">+10</span> per 1 hr session taught
+          </div>
         </div>
 
-        {/* My Skills Summary */}
-        <div className="glass rounded-2xl p-5 space-y-4">
+        {/* Daily Streak */}
+        <div className="glass-card p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white flex items-center gap-2"><BookOpen className="h-4 w-4 text-emerald-400" /> My Skills</h2>
-            <Link href="/profile" className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">Edit <ArrowRight className="h-3 w-3" /></Link>
+            <span className="text-xs font-semibold text-slate-400">Active Streak</span>
+            <div className="h-8 w-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
+              <Flame className="h-4 w-4 fill-rose-400" />
+            </div>
           </div>
-          <div className="space-y-3">
-            <div>
-              <div className="text-[10px] uppercase font-mono text-emerald-400 font-bold mb-1.5">I Can Teach ({teachSkills.length})</div>
-              <div className="flex flex-wrap gap-1.5">
-                {teachSkills.map((s, i) => (
-                  <span key={i} className="text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-medium">
-                    {s.skill?.name} <span className="text-emerald-500/60">({s.proficiency})</span>
-                  </span>
-                ))}
-                {teachSkills.length === 0 && <span className="text-xs text-slate-500">None yet — <Link href="/profile" className="text-red-400">add skills</Link></span>}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase font-mono text-amber-400 font-bold mb-1.5">I Want to Learn ({learnSkills.length})</div>
-              <div className="flex flex-wrap gap-1.5">
-                {learnSkills.map((s, i) => (
-                  <span key={i} className="text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2.5 py-1 rounded-lg font-medium">
-                    {s.skill?.name} <span className="text-amber-500/60">({s.proficiency})</span>
-                  </span>
-                ))}
-                {learnSkills.length === 0 && <span className="text-xs text-slate-500">None yet — <Link href="/profile" className="text-red-400">add goals</Link></span>}
-              </div>
-            </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-rose-300">{user?.streak ?? 1}</span>
+            <span className="text-xs text-slate-400 font-medium">Days Active</span>
+          </div>
+          <div className="text-[11px] text-slate-400">
+            Multiplier: <strong className="text-rose-300">1.25x XP</strong>
           </div>
         </div>
+
+        {/* Experience & Level */}
+        <div className="glass-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400">Experience Level</span>
+            <div className="h-8 w-8 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
+              <Zap className="h-4 w-4 fill-indigo-400" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-indigo-300">{user?.xp ?? 100}</span>
+            <span className="text-xs text-slate-400 font-medium">XP Points</span>
+          </div>
+          <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+            <div className="bg-indigo-500 h-1.5 rounded-full w-[65%]" />
+          </div>
+        </div>
+
+        {/* Completed Teaching Hours */}
+        <div className="glass-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400">Hours Exchanged</span>
+            <div className="h-8 w-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+              <Clock className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-emerald-300">{user?.completedHours ?? 32}</span>
+            <span className="text-xs text-slate-400 font-medium">Hours</span>
+          </div>
+          <div className="text-[11px] text-slate-400">
+            Rating: <strong className="text-emerald-300">4.95 ★</strong> (28 reviews)
+          </div>
+        </div>
+
       </div>
 
-      {/* Badges & Recent Transactions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass rounded-2xl p-5 space-y-3">
-          <h2 className="text-base font-bold text-white flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-400" /> My Badges</h2>
-          {badges.length === 0 ? (
-            <p className="text-sm text-slate-500 py-2">Complete sessions and activities to earn badges!</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {badges.map(b => (
-                <div key={b.id} className="bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-xl text-xs flex items-center gap-2">
-                  <span className="text-lg">{b.icon}</span>
+      {/* Main Grid: Upcoming Session + AI Match Spotlight */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left: Upcoming Sessions Card (7 cols) */}
+        <div className="lg:col-span-7 glass-card p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-indigo-400" />
+              <h2 className="text-base font-bold text-white">Upcoming Session</h2>
+            </div>
+            <Link href="/sessions" className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+              View All ({sessions.length}) <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          {upcomingSession ? (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950/40 border border-indigo-500/20 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={upcomingSession.learnerAvatar || "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80"}
+                    alt={upcomingSession.learnerName}
+                    className="h-11 w-11 rounded-full object-cover ring-2 ring-indigo-500/40"
+                  />
                   <div>
-                    <div className="font-bold text-white">{b.name}</div>
-                    <div className="text-amber-400/70">{b.description}</div>
+                    <h3 className="text-sm font-bold text-white">{upcomingSession.skillTitle}</h3>
+                    <p className="text-xs text-slate-400">
+                      With <span className="text-slate-200 font-medium">{upcomingSession.learnerName}</span> • {upcomingSession.type === "VIRTUAL" ? "Live WebRTC Conference" : "Campus In-Person"}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <div className="glass rounded-2xl p-5 space-y-3">
-          <h2 className="text-base font-bold text-white flex items-center gap-2"><Coins className="h-4 w-4 text-amber-400" /> Recent Transactions</h2>
-          {txs.length === 0 ? (
-            <p className="text-sm text-slate-500 py-2">No transactions yet.</p>
-          ) : (
-            txs.slice(0, 4).map(tx => (
-              <div key={tx.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-white/[0.02] border border-white/5">
-                <div>
-                  <div className="text-slate-200 font-medium">{tx.description}</div>
-                  <div className="text-slate-500 text-[10px] font-mono">{tx.timestamp?.split("T")[0]}</div>
-                </div>
-                <span className={`font-mono font-bold ${tx.amount > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {tx.amount > 0 ? "+" : ""}{tx.amount}
+                <span className="self-start sm:self-auto text-[11px] font-semibold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  Confirmed
                 </span>
               </div>
-            ))
+
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5 text-xs text-slate-300">
+                💬 <strong>Notes:</strong> {upcomingSession.notes}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                  Scheduled: Today in 2 Hours
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveCheckInSession(upcomingSession)}
+                    className="btn-secondary px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    Check-In OTP
+                  </button>
+                  <Link
+                    href={`/session/${upcomingSession.id}`}
+                    className="btn-primary px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    Enter Virtual Room
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-10 text-slate-400 text-xs">
+              No upcoming sessions. Browse skills or find matches to schedule one!
+            </div>
           )}
         </div>
+
+        {/* Right: AI Match Spotlight (5 cols) */}
+        <div className="lg:col-span-5 glass-card p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-base font-bold text-white">AI Match Spotlight</h2>
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              98% Synergy
+            </span>
+          </div>
+
+          {topMatch && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={topMatch.avatar}
+                  alt={topMatch.name}
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-cyan-500/40"
+                />
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    {topMatch.name}
+                    <span className="text-xs text-amber-400 font-semibold">★ {topMatch.rating}</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">{topMatch.role}</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-1 text-xs text-slate-300">
+                <p className="font-semibold text-cyan-300">Why this match is high synergy:</p>
+                <p className="text-[11px] text-slate-400">
+                  Priya teaches <strong>UI/UX Design & Figma</strong> which you want to learn, and she wants to learn <strong>React & Next.js</strong> from you!
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/matches"
+                  className="w-full btn-primary py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 text-center"
+                >
+                  View Compatibility Breakdown
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
+
+      {/* QR / OTP Check-In Modal */}
+      {activeCheckInSession && (
+        <QRCheckInModal
+          session={activeCheckInSession}
+          onClose={() => setActiveCheckInSession(null)}
+          onVerified={() => {
+            setSessions((prev) =>
+              prev.map((s) =>
+                s.id === activeCheckInSession.id ? { ...s, status: "COMPLETED" } : s
+              )
+            );
+            setActiveCheckInSession(null);
+          }}
+        />
+      )}
+
     </div>
   );
 }

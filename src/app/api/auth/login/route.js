@@ -1,28 +1,32 @@
-// api/auth/login/route.js
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import prisma from "@/lib/prisma";
+import { loginUser } from "@/lib/auth";
 
 export async function POST(req) {
   try {
     const { email, password } = await req.json();
-    if (!email || !password)
-      return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+    const result = loginUser(email, password);
 
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user)
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    if (!result.success) {
+      return NextResponse.json({ error: result.message }, { status: 401 });
+    }
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    const response = NextResponse.json({
+      success: true,
+      user: result.user,
+      token: result.token
+    });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    const { password: _, ...safeUser } = user;
-    return NextResponse.json({ token, user: safeUser });
+    // Set secure cookie
+    response.cookies.set("skillswap_token", result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/"
+    });
+
+    return response;
   } catch (err) {
-    console.error("Login error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

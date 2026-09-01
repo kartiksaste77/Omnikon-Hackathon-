@@ -1,52 +1,58 @@
-# SkillSwap — Peer Skill Exchange & Mentorship
+# SkillSwap — Peer Skill Exchange & Campus Mentorship
 
-**SkillSwap** is a full-stack peer-to-peer student skill exchange application built for the **Omnikon National Hackathon 2026** (EdTech & Skill Development, Problem Statement `Omni_EdTech_10`).
+**SkillSwap** is a full-stack peer-to-peer student skill exchange and live mentorship platform built for the **Omnikon National Hackathon 2026** (EdTech & Skill Development, Problem Statement `Omni_EdTech_10`).
 
-The platform solves the campus skill silo problem by introducing a zero-cost time-bank economy powered by intelligent match scoring, structured learning path roadmaps, an AI assistant, and a dual-verification session check-in system.
+The platform solves the campus skill silo problem by introducing a zero-cost time-bank economy powered by intelligent AI match scoring, structured learning path roadmaps, an authentic **Google Meet & Zoom style WebRTC live video meeting suite**, real-time peer connection networking, encrypted live chat, and dual-verification session check-in.
 
 ---
 
 ## 🚀 Key Features
 
-*   **Zero-Cost Economy**: **$1\text{ Hour Taught} = 10\text{ SkillCoins} = 1\text{ Hour Learned}$**. Users earn coins by teaching and spend them to learn from others, with coins held in escrow during active bookings.
-*   **AI Match Engine**: Recommends matches with percentage compatibility scores based on teaching skills, learning goals, proficiency matching (beginner/intermediate/advanced), schedule overlap, languages, and interests.
-*   **AI Learning Roadmaps**: Generates custom week-by-week learning paths with specific tasks and curated resources based on the user's available weekly hours and goals.
-*   **AI Assistant Chat**: Provides educational guidance, structured steps, practice exercises, project ideas, and list of questions to ask mentors.
-*   **Dual Verification Session Management**: Virtual sessions run inside an interactive WebRTC simulator (with cameras, screenshare, a shared drawing whiteboard, and a JavaScript playground code runner). In-person sessions use an animated QR scanner and 4-digit OTP system to prevent no-shows.
-*   **Reputation Rating Reviews**: Users rate completed sessions out of 5 stars and submit feedback to automatically update public reliability scores and badges.
-*   **Gamification Systems**: Leaderboard rankings based on user XP, teaching stats, and streak multipliers. Custom unlockable achievement badges.
+*   **Zero-Cost Time-Bank Economy**: **$1\text{ Hour Taught} = 10\text{ SkillCoins} = 1\text{ Hour Learned}$**. Users earn coins by teaching and spend them to learn from peers, with coins held securely in escrow during active bookings.
+*   **Google Meet & Zoom WebRTC Meeting Suite**:
+    *   **Pre-Join Green Room Lobby**: Real webcam and mic hardware diagnostic preview with audio VU volume activity meter.
+    *   **Dynamic Zoom Video Grid**: Responsive gallery layout with active speaking glow indicator borders.
+    *   **Real Screen Sharing**: Native browser screen/window/tab presentation with track replacement.
+    *   **In-Call Collaboration Tools**: Integrated in-call live chat drawer, participants list, collaborative shapes whiteboard with PNG export, and live JavaScript code runner.
+    *   **Raise Hand (✋) & Emoji Reactions**: Floating live reaction particles (`🔥`, `👏`, `💡`, `❤️`, `🚀`, `🎉`).
+*   **Peer Connections & Networking**:
+    *   **Discover & Add Connections**: Search campus students by major and skills, and send personalized connection notes.
+    *   **Pending Requests Manager**: Review incoming connection requests with 1-click **Accept (+15 XP)** or Decline.
+    *   **My Connections Directory**: View connected mentors, active online status, and 1-click Live Chat & Meeting launch.
+*   **Live Encrypted Peer Chat**: Direct real-time messaging between connected peers with timestamped history, emoji quick replies, and instant meeting triggers.
+*   **Secure Authentication & Session Sync**: JWT token authorization, HTTP-only cookie session management, and bcrypt password hashing.
+*   **AI Match Engine**: Recommends matches with percentage compatibility scores based on teaching skills, learning goals, proficiency matching, schedule overlap, and review history.
+*   **AI Learning Roadmaps & AI Mentor**: Generates custom week-by-week learning paths with actionable checklists, milestones, and conversational study guidance.
+*   **Dual Attendance Verification**: In-person campus sessions use an animated QR scanner and 4-digit OTP system to prevent no-shows and release escrow.
+*   **Reputation Rating & Leaderboard**: 5-star peer review system with unlockable achievement badges (Master Mentor, Design Wizard, Algorithm Ace) and campus XP standings.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Frontend & Routing**: Next.js 14 (App Router)
-*   **Styling**: Tailwind CSS
+*   **Frontend & Routing**: Next.js 15+ (App Router, Server & Client Components)
+*   **Styling**: Modern Glassmorphic Dark UI + Tailwind CSS & CSS Variables
 *   **Icons**: Lucide React
-*   **State & Session Management**: React Context, LocalStorage
-*   **AI Simulation Core**: Custom Natural Language & semantic mapping rules in client service layers
-*   **Animations**: canvas-confetti, Tailwind CSS keyframes
+*   **Video & Audio**: WebRTC (`RTCPeerConnection`), Google STUN Servers, Web Audio API `AnalyserNode`, `navigator.mediaDevices`
+*   **Authentication**: JWT (`jsonwebtoken`), Password Hashing (`bcryptjs`), HTTP Cookies
+*   **State & Signaling**: React Context, BroadcastChannel, REST Signaling API
+*   **Animations**: Canvas Confetti, CSS Keyframe Floats
 
 ---
 
-## 📐 Architecture & Closed-Loop System
+## 📐 Architecture & Closed-Loop Workflow
 
-```
-┌───────────────┐     AI Match Score     ┌─────────────────┐
-│ User Profile  │───────────────────────▸│  AI Match Card  │
-└───────────────┘                        └─────────────────┘
-        │                                         │
-        │ Availability & Category                 │ Connect Request
-        ▼                                         ▼
-┌───────────────┐     Confirm & Book     ┌─────────────────┐
-│ Browse Skills │◄───────────────────────│  Chat & Connect │
-└───────────────┘                        └─────────────────┘
-                                                  │
-                                                  │ Schedule Session
-                                                  ▼
-┌───────────────┐     CONFIRM OTP/QR     ┌─────────────────┐
-│ Review System │◄───────────────────────│  Active Session │
-└───────────────┘   +10 Coins / +5 XP    └─────────────────┘
+```mermaid
+graph TD
+    A[User Profile & Auth] --> B[AI Match Engine]
+    A --> C[Campus Connections Hub]
+    C -->|Send / Accept +15 XP| D[Connected Peers]
+    D --> E[Live Direct Chat]
+    E --> F[Instant Google Meet / Zoom Video Room]
+    F -->|Mic / Cam / Screen Share / Whiteboard| G[Interactive Session]
+    G --> H[End Call & Verify Attendance]
+    H -->|Automated Escrow Release| I[+10 SkillCoins to Mentor & +50 XP]
+    I --> J[5-Star Reviews & Campus Leaderboard]
 ```
 
 ---
@@ -71,34 +77,13 @@ The platform solves the campus skill silo problem by introducing a zero-cost tim
    ```bash
    npm run dev
    ```
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📄 License, Security & Conduct
-Refer to the following files for details:
-*   [LICENSE](LICENSE) — MIT License details.
-*   [SECURITY.md](SECURITY.md) — Security policy and vulnerability disclosure procedures.
-*   [CONTRIBUTING.md](CONTRIBUTING.md) — Guidelines for contributing.
-*   [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Code of conduct guidelines.
+## 📄 License & Team
 
----
-
-## 👥 Team: `kartiksaste11`
-*   **Kartik Saste**
-    *   *Contributions*: Next.js framework scaffolding, App Router structure, AI roadmap generator, assistant chat components, matching engine scoring algorithm, and global styles layout.
-*   **Karan Rathod**
-    *   *Contributions*: Session management views, QR/OTP verification flows, mock relational transactional ledger service, gamification stats, and responsive desktop/mobile grid systems.
-
----
-
-## 📚 Third-Party Attributions
-*   **Next.js** (Vercel) — React Framework for SSR and App routing.
-*   **Tailwind CSS** — Utility-first CSS styling and layout.
-*   **Lucide React** — Interface vector icons.
-*   **Canvas Confetti** — Gamification completion animations.
-*   **Outfit & Plus Jakarta Sans** (Google Fonts) — Visual branding typography.
-
----
-
-*Omnikon National Hackathon 2026 — One mission. Build the impossible.*
+*   **License**: MIT License
+*   **Team**: `kartiksaste11`
+    *   **Kartik Saste** — Next.js scaffolding, WebRTC video meeting engine, AI match scoring algorithm, AI roadmap generator, auth & connections subsystem, and glassmorphic design system.
+    *   **Karan Rathod** — Dual QR/OTP verification flows, mock ledger service, gamification stats, and responsive UI grid.

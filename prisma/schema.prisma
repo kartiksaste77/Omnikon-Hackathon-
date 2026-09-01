@@ -1,6 +1,6 @@
-// SkillSwap — Prisma Schema (SQLite)
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {

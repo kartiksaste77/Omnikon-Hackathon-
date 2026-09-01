@@ -1,177 +1,186 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+
+import React, { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import db from "@/lib/mockDatabase";
-import { Calendar, Plus, CheckCircle2, XCircle, Clock, Video } from "lucide-react";
-import confetti from "canvas-confetti";
+import { 
+  CalendarCheck2, 
+  Video, 
+  Clock, 
+  Coins, 
+  KeyRound, 
+  CheckCircle2, 
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  User
+} from "lucide-react";
+import { INITIAL_SESSIONS } from "@/lib/seedData";
+import QRCheckInModal from "@/components/QRCheckInModal";
 
 export default function SessionsPage() {
-  const { user, refreshUser } = useAuth();
-  const router = useRouter();
-  const [showNewSession, setShowNewSession] = useState(false);
-  const [, refresh] = useState(0);
+  const { user, modifyCoins, modifyXp } = useAuth();
+  const [sessions, setSessions] = useState(INITIAL_SESSIONS);
+  const [activeTab, setActiveTab] = useState("UPCOMING"); // 'UPCOMING' | 'COMPLETED'
+  const [activeCheckInSession, setActiveCheckInSession] = useState(null);
 
-  // New session form state
-  const [peerId, setPeerId] = useState("");
-  const [skillId, setSkillId] = useState("");
-  const [topic, setTopic] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("16:00");
-  const [duration, setDuration] = useState(60);
+  const displayedSessions = sessions.filter((s) =>
+    activeTab === "UPCOMING" ? s.status === "CONFIRMED" || s.status === "PENDING" : s.status === "COMPLETED"
+  );
 
-  if (!user) return null;
-
-  const sessions = db.getSessions(user.id);
-  const upcoming = sessions.filter(s => s.status === "upcoming");
-  const completed = sessions.filter(s => s.status === "completed");
-  const cancelled = sessions.filter(s => s.status === "cancelled");
-
-  const connections = db.getAcceptedConnections(user.id);
-  const connectedUsers = connections.map(c => {
-    const partnerId = c.senderId === user.id ? c.receiverId : c.senderId;
-    return db.getUser(partnerId);
-  }).filter(Boolean);
-
-  const allSkills = db.getSkills();
-
-  const handleCreateSession = (e) => {
-    e.preventDefault();
-    if (!peerId || !skillId || !date) return;
-    db.createSession({
-      mentorId: user.id,
-      learnerId: peerId,
-      skillId,
-      topic: topic || allSkills.find(s => s.id === skillId)?.name || "Session",
-      date,
-      time,
-      duration,
-    });
-    setShowNewSession(false);
-    setPeerId(""); setSkillId(""); setTopic(""); setDate(""); setTime("16:00");
-    refresh(n => n + 1);
+  const handleVerified = () => {
+    if (!activeCheckInSession) return;
+    setSessions((prev) =>
+      prev.map((s) => (s.id === activeCheckInSession.id ? { ...s, status: "COMPLETED" } : s))
+    );
+    modifyCoins(10);
+    modifyXp(50);
+    setActiveCheckInSession(null);
   };
-
-  const handleComplete = (sessionId) => {
-    const session = db.completeSession(sessionId);
-    if (session) {
-      // Award SkillCoins
-      if (session.mentorId === user.id) {
-        db.addTransaction(user.id, "earned", 10, `Taught session: ${session.topic}`);
-        db.updateUser(user.id, { xp: (user.xp || 0) + 10, sessionsCompleted: (user.sessionsCompleted || 0) + 1 });
-      } else {
-        db.addTransaction(user.id, "earned", 5, `Completed learning: ${session.topic}`);
-        db.updateUser(user.id, { xp: (user.xp || 0) + 5, sessionsCompleted: (user.sessionsCompleted || 0) + 1 });
-      }
-      confetti({ particleCount: 80, spread: 60 });
-      refreshUser();
-      refresh(n => n + 1);
-    }
-  };
-
-  const handleCancel = (sessionId) => {
-    db.cancelSession(sessionId);
-    refresh(n => n + 1);
-  };
-
-  const getInitials = (name) => name?.split(" ").map(n => n[0]).join("").toUpperCase() || "?";
 
   return (
-    <div className="space-y-6 max-w-4xl animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-in fade-in">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white font-[Outfit] flex items-center gap-2"><Calendar className="h-6 w-6 text-red-400" /> My Sessions</h1>
-          <p className="text-sm text-slate-400 mt-1">Schedule, manage, and complete skill exchange sessions</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-2">
+            <CalendarCheck2 className="h-3.5 w-3.5 text-indigo-400" />
+            Session Hub & Attendance
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">My Peer Sessions</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            Join WebRTC live video rooms or verify attendance with 4-digit OTP / animated QR scan.
+          </p>
         </div>
-        <button onClick={() => setShowNewSession(!showNewSession)} className="btn-primary text-sm"><Plus className="h-4 w-4" /> New Session</button>
+
+        {/* Tab Toggle */}
+        <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-900 border border-white/10">
+          <button
+            onClick={() => setActiveTab("UPCOMING")}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeTab === "UPCOMING"
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Upcoming / Active ({sessions.filter((s) => s.status === "CONFIRMED").length})
+          </button>
+          <button
+            onClick={() => setActiveTab("COMPLETED")}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeTab === "COMPLETED"
+                ? "bg-indigo-600 text-white shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Completed ({sessions.filter((s) => s.status === "COMPLETED").length})
+          </button>
+        </div>
       </div>
 
-      {/* New Session Form */}
-      {showNewSession && (
-        <form onSubmit={handleCreateSession} className="glass rounded-2xl p-5 space-y-4 animate-slide-up">
-          <h3 className="text-base font-bold text-white">Schedule New Session</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Peer</label>
-              <select value={peerId} onChange={e => setPeerId(e.target.value)} required className="input-base text-xs">
-                <option value="">Select a connected peer...</option>
-                {connectedUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
+      {/* Sessions List */}
+      <div className="space-y-4">
+        {displayedSessions.length > 0 ? (
+          displayedSessions.map((session) => (
+            <div
+              key={session.id}
+              className="glass-card p-6 border border-white/10 hover:border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`text-[11px] font-bold px-3 py-1 rounded-full ${
+                      session.status === "COMPLETED"
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                    }`}
+                  >
+                    {session.status}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {session.type === "VIRTUAL" ? "🌐 WebRTC Virtual Room" : "🏫 Campus In-Person"}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-bold text-white">{session.skillTitle}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Mentor: <strong className="text-slate-200">{session.mentorName}</strong> • Learner: <strong className="text-slate-200">{session.learnerName}</strong>
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                    {session.durationMinutes} Minutes (1 Hr)
+                  </span>
+                  <span className="flex items-center gap-1.5 text-amber-300">
+                    <Coins className="h-3.5 w-3.5 text-amber-400" />
+                    10 SkillCoins {session.status === "COMPLETED" ? "Transferred" : "in Escrow"}
+                  </span>
+                  {session.otpCode && (
+                    <span className="flex items-center gap-1.5 font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                      <KeyRound className="h-3 w-3" /> OTP: {session.otpCode}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3">
+                {session.status === "CONFIRMED" && (
+                  <>
+                    <button
+                      onClick={() => setActiveCheckInSession(session)}
+                      className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
+                      Verify OTP Check-In
+                    </button>
+
+                    <Link
+                      href={`/session/${session.id}`}
+                      className="btn-primary px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/30"
+                    >
+                      <Video className="h-3.5 w-3.5" />
+                      Launch Live Room
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </>
+                )}
+
+                {session.status === "COMPLETED" && (
+                  <Link
+                    href="/reviews"
+                    className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    Leave 5-Star Review
+                  </Link>
+                )}
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Skill/Topic</label>
-              <select value={skillId} onChange={e => setSkillId(e.target.value)} required className="input-base text-xs">
-                <option value="">Select a skill...</option>
-                {allSkills.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Date</label>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} required className="input-base text-xs" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Time</label>
-              <input type="time" value={time} onChange={e => setTime(e.target.value)} className="input-base text-xs" />
-            </div>
+          ))
+        ) : (
+          <div className="text-center py-16 glass-card p-8 space-y-3">
+            <p className="text-sm text-slate-400">No {activeTab.toLowerCase()} sessions found.</p>
+            <Link href="/matches" className="btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold">
+              <Sparkles className="h-3.5 w-3.5" /> Find a Mentor
+            </Link>
           </div>
-          <div className="flex gap-2">
-            <button type="submit" className="btn-primary text-xs">Create Session</button>
-            <button type="button" onClick={() => setShowNewSession(false)} className="btn-secondary text-xs">Cancel</button>
-          </div>
-        </form>
+        )}
+      </div>
+
+      {/* Check-In Modal */}
+      {activeCheckInSession && (
+        <QRCheckInModal
+          session={activeCheckInSession}
+          onClose={() => setActiveCheckInSession(null)}
+          onVerified={handleVerified}
+        />
       )}
 
-      {/* Upcoming Sessions */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-300 uppercase font-mono flex items-center gap-2"><Clock className="h-4 w-4 text-amber-400" /> Upcoming ({upcoming.length})</h2>
-        {upcoming.length === 0 && <p className="text-sm text-slate-500 glass rounded-xl p-6 text-center">No upcoming sessions. Schedule one above!</p>}
-        {upcoming.map(s => {
-          const peer = db.getUser(s.mentorId === user.id ? s.learnerId : s.mentorId);
-          const skill = allSkills.find(sk => sk.id === s.skillId);
-          return (
-            <div key={s.id} className="glass glass-hover rounded-xl p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-600 to-amber-500 flex items-center justify-center text-white text-xs font-bold">{getInitials(peer?.name)}</div>
-                <div>
-                  <div className="text-sm font-bold text-white">{s.topic || skill?.name}</div>
-                  <div className="text-xs text-slate-400">with {peer?.name} • {s.date} at {s.time} • {s.duration}min</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${s.mentorId === user.id ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
-                  {s.mentorId === user.id ? "Teaching" : "Learning"}
-                </span>
-                <button onClick={() => router.push(`/session/${s.id}`)} className="text-xs px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white transition-all">
-                  <Video className="h-3.5 w-3.5" /> Join Live
-                </button>
-                <button onClick={() => handleComplete(s.id)} className="btn-primary text-xs px-3 py-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Complete</button>
-                <button onClick={() => handleCancel(s.id)} className="btn-secondary text-xs px-3 py-1.5"><XCircle className="h-3.5 w-3.5" /> Cancel</button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Completed Sessions */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-300 uppercase font-mono flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> Completed ({completed.length})</h2>
-        {completed.map(s => {
-          const peer = db.getUser(s.mentorId === user.id ? s.learnerId : s.mentorId);
-          const skill = allSkills.find(sk => sk.id === s.skillId);
-          return (
-            <div key={s.id} className="glass rounded-xl p-4 flex items-center justify-between gap-4 opacity-80">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 text-xs font-bold">{getInitials(peer?.name)}</div>
-                <div>
-                  <div className="text-sm font-medium text-slate-300">{s.topic || skill?.name}</div>
-                  <div className="text-xs text-slate-500">with {peer?.name} • {s.date}</div>
-                </div>
-              </div>
-              <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">✓ Done</span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
